@@ -531,7 +531,13 @@ extension WiroClient {
     }
 }
 
-/// Thread-safe flag set by the socket timeout watcher.
+/// Flag set by the socket timeout watcher and read by the receive loop.
+///
+/// `@unchecked Sendable` + `nonisolated(unsafe)` is safe here because the
+/// only writer is the timeout watcher task (`mark()`), and the only reader
+/// is the same receive loop after the watcher has closed the socket. Both
+/// tasks are confined to a single stream consumer; races cannot produce a
+/// torn Bool and a missed timeout still ends via socket close/cancellation.
 final class TimeoutFlag: @unchecked Sendable {
     nonisolated(unsafe) private var value = false
 

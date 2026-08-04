@@ -19,6 +19,9 @@ let package = Package(
         .testTarget(
             name: "WiroKitTests",
             dependencies: ["WiroKit"],
+            resources: [
+                .copy("Fixtures"),
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]
