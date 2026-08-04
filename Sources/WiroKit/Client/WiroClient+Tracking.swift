@@ -4,13 +4,20 @@ extension WiroClient {
     /// Emits polled task snapshots until the task reaches a terminal status.
     ///
     /// Cancelling the consuming `Task` stops the polling loop and finishes
-    /// the stream with ``WiroError/cancelled``.
+    /// the stream with `WiroError.cancelled`.
+    ///
+    /// ```swift
+    /// for try await task in try client.watchTask(token) {
+    ///     print(task.status)
+    ///     if task.status.isTerminal { break }
+    /// }
+    /// ```
     ///
     /// - Parameters:
     ///   - token: Task access token from a run response.
     ///   - timeout: Maximum time to wait (must be `> 0`).
     /// - Returns: A stream of task snapshots.
-    /// - Throws: ``WiroError/validation`` when `timeout` is not positive.
+    /// - Throws: `WiroError.validation` when `timeout` is not positive.
     public func watchTask(
         _ token: WiroTaskToken,
         timeout: Duration = .seconds(600)
@@ -56,6 +63,17 @@ extension WiroClient {
     }
 
     /// Polls until a task reaches a terminal status.
+    ///
+    /// ```swift
+    /// let run = try await client.runModel(model, parameters: ["prompt": "hi"])
+    /// let task = try await client.waitForTask(run.taskToken!)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - token: Task access token from a run response.
+    ///   - timeout: Maximum time to wait (must be `> 0`).
+    /// - Returns: The terminal task snapshot.
+    /// - Throws: `WiroError` when polling fails or the deadline expires.
     public func waitForTask(
         _ token: WiroTaskToken,
         timeout: Duration = .seconds(600)
@@ -85,6 +103,13 @@ extension WiroClient {
 
     /// Starts `model`, tracks it, and returns a typed terminal result.
     ///
+    /// ```swift
+    /// let result = try await client.subscribe(
+    ///     WiroModelID(parsing: "owner/project")!,
+    ///     parameters: ["prompt": "A mountain lake"]
+    /// )
+    /// ```
+    ///
     /// - Parameters:
     ///   - model: Model to run.
     ///   - parameters: Model parameters (may include file inputs).
@@ -92,6 +117,8 @@ extension WiroClient {
     ///   - timeout: Tracking deadline (must be `> 0`).
     ///   - trackingMode: `.polling` or `.webSocket`.
     ///   - onUpdate: Optional callback for each tracking update.
+    /// - Returns: A sealed success or failure result.
+    /// - Throws: `WiroError` when the run or tracking fails.
     public func subscribe(
         _ model: WiroModelID,
         parameters: WiroJSON = [:],
@@ -114,6 +141,24 @@ extension WiroClient {
     /// Starts `model` and streams typed updates until tracking completes.
     ///
     /// Cancelling the stream consumer stops tracking.
+    ///
+    /// ```swift
+    /// for try await update in try client.subscribeStream(
+    ///     WiroModelID(parsing: "owner/project")!,
+    ///     parameters: ["prompt": "A mountain lake"]
+    /// ) {
+    ///     print(update.status as Any)
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - model: Model to run.
+    ///   - parameters: Model parameters (may include file inputs).
+    ///   - callbackURL: Optional completion webhook.
+    ///   - timeout: Tracking deadline (must be `> 0`).
+    ///   - trackingMode: `.polling` or `.webSocket`.
+    /// - Returns: A stream of ``WiroTaskUpdate`` values until terminal.
+    /// - Throws: `WiroError.validation` when `timeout` is not positive.
     public func subscribeStream(
         _ model: WiroModelID,
         parameters: WiroJSON = [:],
@@ -210,6 +255,23 @@ extension WiroClient {
     /// Registers `token` with a `task_info` handshake, then yields frames
     /// until a terminal message, timeout, cancellation, or premature close.
     /// The socket is always closed on exit.
+    ///
+    /// ```swift
+    /// for try await event in try client.watchTaskSocket(token) {
+    ///     switch event {
+    ///     case .message(let message):
+    ///         print(message.status)
+    ///     case .binary:
+    ///         break
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - token: Task access token from a run response.
+    ///   - timeout: Maximum time to wait (must be `> 0`).
+    /// - Returns: A stream of ``WiroSocketEvent`` values.
+    /// - Throws: `WiroError.validation` when `timeout` is not positive.
     public func watchTaskSocket(
         _ token: WiroTaskToken,
         timeout: Duration = .seconds(600)

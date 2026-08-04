@@ -8,9 +8,9 @@ import Foundation
 ///
 /// Embed file inputs in ``WiroJSON`` via ``WiroJSONValue/fileInput(_:)``.
 /// That case is intentionally **not** JSON-encodable — encoding it
-/// throws a programmer error. ``WiroClient/runModel`` deep-walks
-/// parameters, uploads `.data` inputs, and replaces every file input
-/// with a URL string before the `/Run` request is sent.
+/// throws a programmer error. ``WiroClient/runModel(_:parameters:callbackURL:)``
+/// deep-walks parameters, uploads `.data` inputs, and replaces every
+/// file input with a URL string before the `/Run` request is sent.
 ///
 /// ```swift
 /// let parameters: WiroJSON = [

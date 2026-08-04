@@ -17,6 +17,7 @@ public struct WiroModelID: Sendable, Hashable, Codable,
     /// The combined `owner/project` slug.
     public var slug: String { "\(owner)/\(project)" }
 
+    /// Same as ``slug``.
     public var description: String { slug }
 
     /// Creates a model identifier from validated owner and project
@@ -70,6 +71,7 @@ public struct WiroModelID: Sendable, Hashable, Codable,
         self.project = project
     }
 
+    /// Decodes from a single JSON string (`"owner/project"`).
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
@@ -83,6 +85,7 @@ public struct WiroModelID: Sendable, Hashable, Codable,
         self = parsed
     }
 
+    /// Encodes as a single JSON string (`"owner/project"`).
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(slug)

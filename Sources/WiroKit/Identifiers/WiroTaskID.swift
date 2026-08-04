@@ -10,6 +10,7 @@ public struct WiroTaskID: Sendable, Hashable, Codable,
     /// The underlying task id string.
     public let rawValue: String
 
+    /// The raw task id string.
     public var description: String { rawValue }
 
     /// Creates a task id from a non-empty string.
@@ -24,6 +25,7 @@ public struct WiroTaskID: Sendable, Hashable, Codable,
         self.rawValue = trimmed
     }
 
+    /// Decodes from a single JSON string.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
@@ -36,6 +38,7 @@ public struct WiroTaskID: Sendable, Hashable, Codable,
         self = id
     }
 
+    /// Encodes as a single JSON string.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)

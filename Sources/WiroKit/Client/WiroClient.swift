@@ -72,6 +72,16 @@ public actor WiroClient {
     ///
     /// When `apiSecret` is provided, requests use signature auth
     /// (`x-nonce` + `x-signature`). Otherwise only `x-api-key` is sent.
+    ///
+    /// ```swift
+    /// let client = try WiroClient(
+    ///     apiKey: "your-api-key",
+    ///     apiSecret: "optional-secret"
+    /// )
+    /// ```
+    ///
+    /// - Throws: `WiroError.validation` when credentials or URLs are
+    ///   invalid.
     public init(
         apiKey: String,
         apiSecret: String? = nil,
@@ -113,7 +123,19 @@ public actor WiroClient {
     ///
     /// No Wiro credentials are stored on device. `headers` are attached to
     /// every REST request. The WebSocket still connects directly to
-    /// `socketURL`.
+    /// `socketURL` because task sockets authenticate with task tokens.
+    ///
+    /// > Important: Prefer proxy mode in shipped apps so long-lived API
+    /// > secrets never embed in the binary.
+    ///
+    /// ```swift
+    /// let client = try WiroClient(
+    ///     proxyURL: URL(string: "https://api.myapp.com/wiro/v1")!,
+    ///     headers: ["Authorization": "Bearer \(sessionToken)"]
+    /// )
+    /// ```
+    ///
+    /// - Throws: `WiroError.validation` when URLs are invalid.
     public init(
         proxyURL: URL,
         headers: [String: String] = [:],

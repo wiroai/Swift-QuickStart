@@ -58,3 +58,10 @@ jobs:
               )
           print(f"Coverage meets the required {threshold:.0%} gate.")
           '
+
+      - name: Build DocC documentation
+        run: |
+          xcodebuild docbuild \
+            -scheme WiroKit \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/WiroKitDocDerivedData"

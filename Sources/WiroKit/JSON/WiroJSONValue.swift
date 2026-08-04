@@ -13,12 +13,12 @@ public typealias WiroJSON = [String: WiroJSONValue]
 ///
 /// ## File inputs
 ///
-/// ``fileInput(_:)`` embeds a ``WiroFileInput`` in parameter trees so
-/// call sites stay ergonomic:
+/// ``WiroJSONValue/fileInput(_:)`` embeds a ``WiroFileInput`` in
+/// parameter trees so call sites stay ergonomic:
 /// `["inputImage": [.fileInput(.data(bytes, fileName: "a.png"))]]`.
 /// That case is **never** encoded to the wire — ``encode(to:)`` throws.
-/// ``WiroClient/runModel`` resolves every nested file input to a URL
-/// string before encoding.
+/// ``WiroClient/runModel(_:parameters:callbackURL:)`` resolves every
+/// nested file input to a URL string before encoding.
 public enum WiroJSONValue: Sendable, Equatable {
     /// A JSON string.
     case string(String)
@@ -101,8 +101,8 @@ public enum WiroJSONValue: Sendable, Equatable {
     /// Converts this value into a Foundation JSON object suitable for
     /// `JSONSerialization`.
     ///
-    /// - Throws: `WiroError.validation` when a ``fileInput`` remains
-    ///   unresolved.
+    /// - Throws: `WiroError.validation` when a ``WiroJSONValue/fileInput(_:)``
+    ///   remains unresolved.
     public func toAny() throws -> Any {
         switch self {
         case .string(let value):
@@ -174,6 +174,7 @@ public enum WiroJSONValue: Sendable, Equatable {
 }
 
 extension WiroJSONValue: Codable {
+    /// Decodes any JSON value from a single-value container.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         if container.decodeNil() {
@@ -196,6 +197,10 @@ extension WiroJSONValue: Codable {
         }
     }
 
+    /// Encodes this value as JSON.
+    ///
+    /// - Throws: `EncodingError.invalidValue` when this is a
+    ///   ``WiroJSONValue/fileInput(_:)``.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -226,36 +231,42 @@ extension WiroJSONValue: Codable {
 }
 
 extension WiroJSONValue: ExpressibleByStringLiteral {
+    /// Creates a `.string` from a string literal.
     public init(stringLiteral value: String) {
         self = .string(value)
     }
 }
 
 extension WiroJSONValue: ExpressibleByIntegerLiteral {
+    /// Creates a `.number` from an integer literal.
     public init(integerLiteral value: Int) {
         self = .number(Double(value))
     }
 }
 
 extension WiroJSONValue: ExpressibleByFloatLiteral {
+    /// Creates a `.number` from a floating-point literal.
     public init(floatLiteral value: Double) {
         self = .number(value)
     }
 }
 
 extension WiroJSONValue: ExpressibleByBooleanLiteral {
+    /// Creates a `.bool` from a boolean literal.
     public init(booleanLiteral value: Bool) {
         self = .bool(value)
     }
 }
 
 extension WiroJSONValue: ExpressibleByArrayLiteral {
+    /// Creates an `.array` from an array literal.
     public init(arrayLiteral elements: WiroJSONValue...) {
         self = .array(elements)
     }
 }
 
 extension WiroJSONValue: ExpressibleByDictionaryLiteral {
+    /// Creates an `.object` from a dictionary literal.
     public init(dictionaryLiteral elements: (String, WiroJSONValue)...) {
         var object: WiroJSON = [:]
         object.reserveCapacity(elements.count)
@@ -267,6 +278,7 @@ extension WiroJSONValue: ExpressibleByDictionaryLiteral {
 }
 
 extension WiroJSONValue: ExpressibleByNilLiteral {
+    /// Creates `.null` from a `nil` literal.
     public init(nilLiteral: ()) {
         self = .null
     }

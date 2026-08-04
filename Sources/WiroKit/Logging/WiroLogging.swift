@@ -2,9 +2,13 @@ import Foundation
 
 /// Severity of a `WiroLogEvent`.
 public enum WiroLogLevel: String, Sendable, Equatable, Comparable {
+    /// Verbose diagnostics for request lifecycle details.
     case debug
+    /// Successful request completions and routine milestones.
     case info
+    /// Recoverable issues such as retries.
     case warning
+    /// Permanent failures that end an operation.
     case error
 
     private var rank: Int {
@@ -16,6 +20,7 @@ public enum WiroLogLevel: String, Sendable, Equatable, Comparable {
         }
     }
 
+    /// Compares severity ranks (`debug` < `info` < `warning` < `error`).
     public static func < (lhs: WiroLogLevel, rhs: WiroLogLevel) -> Bool {
         lhs.rank < rhs.rank
     }

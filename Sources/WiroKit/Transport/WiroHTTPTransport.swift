@@ -37,6 +37,11 @@ public struct URLSessionHTTPTransport: WiroHTTPTransport {
         self.session = session
     }
 
+    /// Executes `request` with `URLSession.data(for:)`.
+    ///
+    /// - Parameter request: A fully configured `URLRequest`.
+    /// - Returns: The response body and HTTP response.
+    /// - Throws: Transport failures surfaced as `WiroError.network`.
     public func perform(
         _ request: URLRequest
     ) async throws -> (Data, HTTPURLResponse) {
@@ -54,6 +59,13 @@ public struct URLSessionHTTPTransport: WiroHTTPTransport {
         }
     }
 
+    /// Uploads `fileURL` with `URLSession.upload(for:fromFile:)`.
+    ///
+    /// - Parameters:
+    ///   - request: A fully configured `URLRequest`.
+    ///   - fileURL: Local file providing the request body.
+    /// - Returns: The response body and HTTP response.
+    /// - Throws: Transport failures surfaced as `WiroError.network`.
     public func upload(
         _ request: URLRequest,
         fromFile fileURL: URL

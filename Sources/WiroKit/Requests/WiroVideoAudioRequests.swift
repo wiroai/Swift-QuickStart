@@ -2,17 +2,34 @@ import Foundation
 
 /// Typed request for `runway/gen-4-5`.
 public struct WiroRunwayGen45Request: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Output aspect ratio (`ratio`).
     public let ratio: WiroRunwayGen45Ratio
+    /// Clip duration in seconds (`duration`).
     public let duration: Int
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Optional content moderation setting (`contentModeration`).
     public let contentModeration: WiroRunwayGen45Moderation?
+    /// Optional random seed (`seed`).
     public let seed: Int?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("runway", "gen-4-5")
     }
 
+    /// Creates a Runway Gen 4.5 request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - ratio: Output aspect ratio (`ratio`).
+    ///   - duration: Clip duration in seconds (`duration`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - contentModeration: Optional moderation (`contentModeration`).
+    ///   - seed: Optional random seed (`seed`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         ratio: WiroRunwayGen45Ratio,
@@ -45,6 +62,8 @@ public struct WiroRunwayGen45Request: WiroModelRequest, Sendable, Equatable {
         self.seed = seed
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -64,23 +83,54 @@ public struct WiroRunwayGen45Request: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `bytedance/seedance-2-0`.
 public struct WiroSeedance20Request: WiroModelRequest, Sendable, Equatable {
+    /// Output resolution (`resolution`).
     public let resolution: WiroSeedance20Resolution
+    /// Output aspect ratio (`ratio`).
     public let ratio: WiroSeedance20Ratio
+    /// Clip duration in seconds (`duration`).
     public let duration: Int
+    /// Whether to generate audio (`generateAudio`).
     public let generateAudio: Bool
+    /// Optional text prompt (`prompt`).
     public let prompt: String?
+    /// Optional first-frame images (`inputImage`).
     public let inputImage: [WiroFileInput]?
+    /// Optional last-frame images (`inputImageLast`).
     public let lastFrameImage: [WiroFileInput]?
+    /// Optional reference images (`inputImageReference`).
     public let referenceImages: [WiroFileInput]?
+    /// Optional reference audios (`inputAudio`).
     public let referenceAudios: [WiroFileInput]?
+    /// Optional prompt enhancement flag (`promptEnhancement`).
     public let promptEnhancement: Bool?
+    /// Optional watermark flag (`watermark`).
     public let watermark: Bool?
+    /// Optional random seed (`seed`).
     public let seed: Int?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("bytedance", "seedance-2-0")
     }
 
+    /// Creates a Seedance 2.0 request.
+    ///
+    /// - Parameters:
+    ///   - resolution: Output resolution (`resolution`).
+    ///   - ratio: Output aspect ratio (`ratio`).
+    ///   - duration: Clip duration in seconds (`duration`).
+    ///   - generateAudio: Whether to generate audio (`generateAudio`).
+    ///   - prompt: Optional text prompt (`prompt`).
+    ///   - inputImage: Optional first-frame images (`inputImage`).
+    ///   - lastFrameImage: Optional last-frame images (`inputImageLast`).
+    ///   - referenceImages: Optional reference images
+    ///     (`inputImageReference`).
+    ///   - referenceAudios: Optional reference audios (`inputAudio`).
+    ///   - promptEnhancement: Optional prompt enhancement
+    ///     (`promptEnhancement`).
+    ///   - watermark: Optional watermark flag (`watermark`).
+    ///   - seed: Optional random seed (`seed`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         resolution: WiroSeedance20Resolution,
         ratio: WiroSeedance20Ratio,
@@ -128,6 +178,8 @@ public struct WiroSeedance20Request: WiroModelRequest, Sendable, Equatable {
         self.seed = seed
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "resolution": .string(resolution.apiValue),
@@ -162,21 +214,46 @@ public struct WiroSeedance20Request: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `klingai/kling-v3`.
 public struct WiroKlingV3Request: WiroModelRequest, Sendable, Equatable {
+    /// Generation mode (`mode`).
     public let mode: WiroKlingV3Mode
+    /// Clip duration in seconds (`duration`).
     public let duration: Int
+    /// Output aspect ratio (`ratio`).
     public let ratio: WiroKlingV3Ratio
+    /// Whether to include sound (`sound`).
     public let sound: Bool
+    /// Optional text prompt (`prompt`).
     public let prompt: String?
+    /// Optional first-frame images (`inputImage`).
     public let inputImage: [WiroFileInput]?
+    /// Optional last-frame images (`inputImage2`).
     public let lastFrameImage: [WiroFileInput]?
+    /// Optional multi-shot flag (`multiShot`).
     public let multiShot: Bool?
+    /// Optional multi-shot type (`shotType`).
     public let shotType: WiroKlingV3ShotType?
+    /// Optional multi-shot prompt (`multiPrompt`).
     public let multiPrompt: String?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("klingai", "kling-v3")
     }
 
+    /// Creates a Kling v3 request.
+    ///
+    /// - Parameters:
+    ///   - mode: Generation mode (`mode`).
+    ///   - duration: Clip duration in seconds (`duration`).
+    ///   - ratio: Output aspect ratio (`ratio`).
+    ///   - sound: Whether to include sound (`sound`).
+    ///   - prompt: Optional text prompt (`prompt`).
+    ///   - inputImage: Optional first-frame images (`inputImage`).
+    ///   - lastFrameImage: Optional last-frame images (`inputImage2`).
+    ///   - multiShot: Optional multi-shot flag (`multiShot`).
+    ///   - shotType: Optional multi-shot type (`shotType`).
+    ///   - multiPrompt: Optional multi-shot prompt (`multiPrompt`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         mode: WiroKlingV3Mode,
         duration: Int,
@@ -214,6 +291,8 @@ public struct WiroKlingV3Request: WiroModelRequest, Sendable, Equatable {
         self.multiPrompt = multiPrompt
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "mode": .string(mode.apiValue),
@@ -241,20 +320,43 @@ public struct WiroKlingV3Request: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `google/veo3-1`.
 public struct WiroVeo31Request: WiroModelRequest, Sendable, Equatable {
+    /// Clip duration in seconds (`durationSeconds`).
     public let durationSeconds: Int
+    /// Optional text prompt (`prompt`).
     public let prompt: String?
+    /// Optional first-frame images (`inputImage`).
     public let inputImage: [WiroFileInput]?
+    /// Optional last-frame images (`inputImage2`).
     public let lastFrameImage: [WiroFileInput]?
+    /// Optional reference images (`inputImage3`).
     public let referenceImages: [WiroFileInput]?
+    /// Optional aspect ratio (`aspectRatio`).
     public let aspectRatio: WiroVeo31Ratio?
+    /// Optional output resolution (`resolution`).
     public let resolution: WiroVeo31Resolution?
+    /// Optional negative prompt (`negativePrompt`).
     public let negativePrompt: String?
+    /// Optional random seed (`seed`).
     public let seed: Int?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("google", "veo3-1")
     }
 
+    /// Creates a Veo 3.1 request.
+    ///
+    /// - Parameters:
+    ///   - durationSeconds: Clip duration in seconds (`durationSeconds`).
+    ///   - prompt: Optional text prompt (`prompt`).
+    ///   - inputImage: Optional first-frame images (`inputImage`).
+    ///   - lastFrameImage: Optional last-frame images (`inputImage2`).
+    ///   - referenceImages: Optional reference images (`inputImage3`).
+    ///   - aspectRatio: Optional aspect ratio (`aspectRatio`).
+    ///   - resolution: Optional output resolution (`resolution`).
+    ///   - negativePrompt: Optional negative prompt (`negativePrompt`).
+    ///   - seed: Optional random seed (`seed`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         durationSeconds: Int,
         prompt: String? = nil,
@@ -289,6 +391,8 @@ public struct WiroVeo31Request: WiroModelRequest, Sendable, Equatable {
         self.seed = seed
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "durationSeconds": WiroRequestEncoding.stringInt(durationSeconds),
@@ -319,16 +423,31 @@ public struct WiroVeo31Request: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `openai/sora-2-pro`.
 public struct WiroSora2ProRequest: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Clip duration in seconds (`seconds`).
     public let seconds: Int
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Optional output resolution (`resolution`).
     public let resolution: WiroSora2ProResolution?
+    /// Optional aspect ratio (`ratio`).
     public let ratio: WiroSora2ProRatio?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("openai", "sora-2-pro")
     }
 
+    /// Creates a Sora 2 Pro request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - seconds: Clip duration in seconds (`seconds`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - resolution: Optional output resolution (`resolution`).
+    ///   - ratio: Optional aspect ratio (`ratio`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         seconds: Int,
@@ -349,6 +468,8 @@ public struct WiroSora2ProRequest: WiroModelRequest, Sendable, Equatable {
         self.ratio = ratio
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -367,16 +488,31 @@ public struct WiroSora2ProRequest: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `minimax/hailuo-2-3-fast`.
 public struct WiroHailuo23FastRequest: WiroModelRequest, Sendable, Equatable {
+    /// Required input images (`inputImage`).
     public let inputImages: [WiroFileInput]
+    /// Clip duration in seconds (`duration`).
     public let duration: Int
+    /// Optional text prompt (`prompt`).
     public let prompt: String?
+    /// Optional prompt optimizer flag (`promptOptimizer`).
     public let promptOptimizer: Bool?
+    /// Optional output resolution (`resolution`).
     public let resolution: WiroHailuo23FastResolution?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("minimax", "hailuo-2-3-fast")
     }
 
+    /// Creates a Hailuo 2.3 Fast request.
+    ///
+    /// - Parameters:
+    ///   - inputImage: Required input image (`inputImage`).
+    ///   - duration: Clip duration in seconds (`duration`).
+    ///   - prompt: Optional text prompt (`prompt`).
+    ///   - promptOptimizer: Optional prompt optimizer (`promptOptimizer`).
+    ///   - resolution: Optional output resolution (`resolution`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         inputImage: WiroFileInput,
         duration: Int,
@@ -401,6 +537,8 @@ public struct WiroHailuo23FastRequest: WiroModelRequest, Sendable, Equatable {
         self.resolution = resolution
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "inputImage": WiroRequestEncoding.filesRequired(inputImages),
@@ -422,16 +560,31 @@ public struct WiroHailuo23FastRequest: WiroModelRequest, Sendable, Equatable {
 public struct WiroGrokImagineVideoRequest: WiroModelRequest, Sendable,
     Equatable
 {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Clip duration in seconds (`duration`).
     public let duration: Int
+    /// Output aspect ratio (`aspectRatio`).
     public let aspectRatio: WiroGrokImagineVideoRatio
+    /// Output resolution (`resolution`).
     public let resolution: WiroGrokImagineVideoResolution
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("xai", "grok-imagine-video")
     }
 
+    /// Creates a Grok Imagine Video request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - duration: Clip duration in seconds (`duration`).
+    ///   - aspectRatio: Output aspect ratio (`aspectRatio`).
+    ///   - resolution: Output resolution (`resolution`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         duration: Int,
@@ -457,6 +610,8 @@ public struct WiroGrokImagineVideoRequest: WiroModelRequest, Sendable,
         self.inputImages = inputImages
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -473,13 +628,22 @@ public struct WiroGrokImagineVideoRequest: WiroModelRequest, Sendable,
 
 /// Typed request for `google/lyria-3`.
 public struct WiroLyria3Request: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("google", "lyria-3")
     }
 
+    /// Creates a Lyria 3 request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         inputImages: [WiroFileInput]? = nil
@@ -489,6 +653,8 @@ public struct WiroLyria3Request: WiroModelRequest, Sendable, Equatable {
         self.inputImages = inputImages
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = ["prompt": .string(prompt)]
         if let files = WiroRequestEncoding.files(inputImages) {

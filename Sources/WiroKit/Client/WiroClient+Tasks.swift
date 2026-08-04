@@ -5,6 +5,14 @@ extension WiroClient {
     ///
     /// This billable operation is not retried automatically.
     ///
+    /// ```swift
+    /// let run = try await client.runModel(
+    ///     WiroModelID(parsing: "owner/project")!,
+    ///     parameters: ["prompt": "A mountain lake"]
+    /// )
+    /// let task = try await client.waitForTask(run.taskToken!)
+    /// ```
+    ///
     /// - Parameters:
     ///   - model: The model to run.
     ///   - parameters: Model input parameters.
@@ -41,6 +49,9 @@ extension WiroClient {
     }
 
     /// Returns task details using a task access token.
+    ///
+    /// - Parameter token: Task access token from a run response.
+    /// - Returns: The latest task snapshot.
     public func getTask(_ token: WiroTaskToken) async throws -> WiroTask {
         let handler = malformedJSONHandler()
         return try await post(
@@ -52,6 +63,9 @@ extension WiroClient {
     }
 
     /// Returns task details using the server-side task id.
+    ///
+    /// - Parameter id: Server-assigned task identifier.
+    /// - Returns: The latest task snapshot.
     public func getTaskByID(_ id: WiroTaskID) async throws -> WiroTask {
         let handler = malformedJSONHandler()
         return try await post(
@@ -63,6 +77,9 @@ extension WiroClient {
     }
 
     /// Requests cancellation of a queued task.
+    ///
+    /// - Parameter token: Task access token from a run response.
+    /// - Returns: `true` when the API accepted the cancel request.
     public func cancelTask(_ token: WiroTaskToken) async throws -> Bool {
         try await post(
             "/Task/Cancel",
@@ -73,6 +90,9 @@ extension WiroClient {
     }
 
     /// Stops a running task.
+    ///
+    /// - Parameter token: Task access token from a run response.
+    /// - Returns: `true` when the API accepted the kill request.
     public func killTask(_ token: WiroTaskToken) async throws -> Bool {
         try await post(
             "/Task/Kill",

@@ -11,6 +11,7 @@ public struct WiroTaskToken: Sendable, Hashable, Codable,
     /// The underlying token string.
     public let rawValue: String
 
+    /// The raw token string.
     public var description: String { rawValue }
 
     /// Creates a token from a non-empty string.
@@ -25,6 +26,7 @@ public struct WiroTaskToken: Sendable, Hashable, Codable,
         self.rawValue = trimmed
     }
 
+    /// Decodes from a single JSON string.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
@@ -37,6 +39,7 @@ public struct WiroTaskToken: Sendable, Hashable, Codable,
         self = token
     }
 
+    /// Encodes as a single JSON string.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)

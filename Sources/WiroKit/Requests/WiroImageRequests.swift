@@ -2,21 +2,37 @@ import Foundation
 
 /// Typed request for `black-forest-labs/flux-2-pro`.
 public struct WiroFlux2ProRequest: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Output width in pixels (`width`).
     public let width: Int?
+    /// Output height in pixels (`height`).
     public let height: Int?
+    /// Safety tolerance level (`safetyTolerance`).
     public let safetyTolerance: Int?
+    /// Optional random seed (`seed`).
     public let seed: Int?
+    /// Output image format (`outputFormat`).
     public let outputFormat: WiroFlux2ProOutputFormat?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("black-forest-labs", "flux-2-pro")
     }
 
     /// Creates a Flux 2 Pro request.
     ///
-    /// - Throws: ``WiroError/validation`` when a constraint is violated.
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - width: Output width in pixels (`width`).
+    ///   - height: Output height in pixels (`height`).
+    ///   - safetyTolerance: Safety tolerance level (`safetyTolerance`).
+    ///   - seed: Optional random seed (`seed`).
+    ///   - outputFormat: Output image format (`outputFormat`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         inputImages: [WiroFileInput]? = nil,
@@ -45,6 +61,8 @@ public struct WiroFlux2ProRequest: WiroModelRequest, Sendable, Equatable {
         self.outputFormat = outputFormat
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = ["prompt": .string(prompt)]
         if let files = WiroRequestEncoding.files(inputImages) {
@@ -65,22 +83,49 @@ public struct WiroFlux2ProRequest: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `openai/gpt-image-2`.
 public struct WiroGptImage2Request: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Output resolution (`resolution`).
     public let resolution: WiroGptImage2Resolution
+    /// Aspect ratio (`ratio`).
     public let ratio: WiroGptImage2Ratio
+    /// Generation quality (`quality`).
     public let quality: WiroGptImage2Quality
+    /// Number of samples to generate (`samples`).
     public let samples: Int
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Optional input image masks (`inputImageMask`).
     public let inputImageMasks: [WiroFileInput]?
+    /// Background mode (`background`).
     public let background: WiroGptImage2Background?
+    /// Output image format (`outputFormat`).
     public let outputFormat: WiroGptImage2OutputFormat?
+    /// Output compression level (`outputCompression`).
     public let outputCompression: Int?
+    /// Content moderation level (`moderation`).
     public let moderation: WiroGptImage2Moderation?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("openai", "gpt-image-2")
     }
 
+    /// Creates a GPT Image 2 request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - resolution: Output resolution (`resolution`).
+    ///   - ratio: Aspect ratio (`ratio`).
+    ///   - quality: Generation quality (`quality`).
+    ///   - samples: Number of samples to generate (`samples`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - inputImageMasks: Optional input image masks (`inputImageMask`).
+    ///   - background: Background mode (`background`).
+    ///   - outputFormat: Output image format (`outputFormat`).
+    ///   - outputCompression: Output compression (`outputCompression`).
+    ///   - moderation: Content moderation level (`moderation`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         resolution: WiroGptImage2Resolution,
@@ -125,6 +170,8 @@ public struct WiroGptImage2Request: WiroModelRequest, Sendable, Equatable {
         self.moderation = moderation
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -157,16 +204,31 @@ public struct WiroGptImage2Request: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `google/nano-banana-pro`.
 public struct WiroNanoBananaProRequest: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Aspect ratio (`aspectRatio`).
     public let aspectRatio: WiroNanoBananaProRatio?
+    /// Output resolution (`resolution`).
     public let resolution: WiroNanoBananaProResolution?
+    /// Safety setting (`safetySetting`).
     public let safetySetting: WiroNanoBananaProSafetySetting?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("google", "nano-banana-pro")
     }
 
+    /// Creates a Nano Banana Pro request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - aspectRatio: Aspect ratio (`aspectRatio`).
+    ///   - resolution: Output resolution (`resolution`).
+    ///   - safetySetting: Safety setting (`safetySetting`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         inputImages: [WiroFileInput]? = nil,
@@ -187,6 +249,8 @@ public struct WiroNanoBananaProRequest: WiroModelRequest, Sendable, Equatable {
         self.safetySetting = safetySetting
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = ["prompt": .string(prompt)]
         if let files = WiroRequestEncoding.files(inputImages) {
@@ -207,16 +271,31 @@ public struct WiroNanoBananaProRequest: WiroModelRequest, Sendable, Equatable {
 
 /// Typed request for `bytedance/seedream-v4`.
 public struct WiroSeedreamV4Request: WiroModelRequest, Sendable, Equatable {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Output size (`size`).
     public let size: WiroSeedreamV4Size
+    /// Maximum number of images (`maxImages`).
     public let maxImages: Int
+    /// Whether to include a watermark (`watermark`).
     public let watermark: Bool
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("bytedance", "seedream-v4")
     }
 
+    /// Creates a Seedream V4 request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - size: Output size (`size`).
+    ///   - maxImages: Maximum number of images (`maxImages`).
+    ///   - watermark: Whether to include a watermark (`watermark`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         size: WiroSeedreamV4Size,
@@ -238,6 +317,8 @@ public struct WiroSeedreamV4Request: WiroModelRequest, Sendable, Equatable {
         self.inputImages = inputImages
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -256,16 +337,31 @@ public struct WiroSeedreamV4Request: WiroModelRequest, Sendable, Equatable {
 public struct WiroGrokImagineImageRequest: WiroModelRequest, Sendable,
     Equatable
 {
+    /// Text prompt (`prompt`).
     public let prompt: String
+    /// Number of samples to generate (`samples`).
     public let samples: Int
+    /// Output resolution (`resolution`).
     public let resolution: WiroGrokImagineImageResolution
+    /// Optional input images (`inputImage`).
     public let inputImages: [WiroFileInput]?
+    /// Aspect ratio (`aspectRatio`).
     public let aspectRatio: WiroGrokImagineImageRatio?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("xai", "grok-imagine-image")
     }
 
+    /// Creates a Grok Imagine Image request.
+    ///
+    /// - Parameters:
+    ///   - prompt: Text prompt (`prompt`).
+    ///   - samples: Number of samples to generate (`samples`).
+    ///   - resolution: Output resolution (`resolution`).
+    ///   - inputImages: Optional input images (`inputImage`).
+    ///   - aspectRatio: Aspect ratio (`aspectRatio`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         prompt: String,
         samples: Int,
@@ -292,6 +388,8 @@ public struct WiroGrokImagineImageRequest: WiroModelRequest, Sendable,
         self.aspectRatio = aspectRatio
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "prompt": .string(prompt),
@@ -310,19 +408,29 @@ public struct WiroGrokImagineImageRequest: WiroModelRequest, Sendable,
 
 /// Typed request for `google/upscaler`.
 public struct WiroUpscalerRequest: WiroModelRequest, Sendable, Equatable {
+    /// Input images (`inputImage`).
     public let inputImages: [WiroFileInput]
+    /// Upscale factor (`upscaleFactor`).
     public let upscaleFactor: Int
+    /// Output image type (`outputType`).
     public let outputType: WiroUpscalerOutputType
+    /// Optional JPEG compression quality (`compressionQuality`).
     public let compressionQuality: Int?
 
+    /// Target model identifier (`owner/project`).
     public var model: WiroModelID {
         WiroRequestValidation.model("google", "upscaler")
     }
 
     /// Creates an upscaler request.
     ///
-    /// - Parameter inputImage: A single required input image (matches the
-    ///   Dart factory wrapping a list).
+    /// - Parameters:
+    ///   - inputImage: A single required input image (`inputImage`).
+    ///   - upscaleFactor: Upscale factor (`upscaleFactor`).
+    ///   - outputType: Output image type (`outputType`).
+    ///   - compressionQuality: Optional JPEG compression quality
+    ///     (`compressionQuality`).
+    /// - Throws: `WiroError.validation` when a constraint is violated.
     public init(
         inputImage: WiroFileInput,
         upscaleFactor: Int,
@@ -341,6 +449,8 @@ public struct WiroUpscalerRequest: WiroModelRequest, Sendable, Equatable {
         self.compressionQuality = compressionQuality
     }
 
+    /// Builds the wire JSON dictionary for `/Run`, including unresolved
+    /// file inputs.
     public func parameters() -> WiroJSON {
         var json: WiroJSON = [
             "inputImage": WiroRequestEncoding.filesRequired(inputImages),

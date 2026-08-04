@@ -10,16 +10,33 @@ public protocol WiroModelRequest: Sendable {
 }
 
 /// A dynamic request for any `owner/project` model without a typed factory.
+///
+/// Prefer ``Wiro/model(_:parameters:)`` to construct instances:
+///
+/// ```swift
+/// let request = try Wiro.model(
+///     "owner/project",
+///     parameters: ["prompt": "hello"]
+/// )
+/// let run = try await client.run(request)
+/// ```
 public struct WiroDynamicRequest: WiroModelRequest, Sendable, Equatable {
+    /// Target model identifier (`owner/project`).
     public let model: WiroModelID
+    /// Raw parameter map returned by ``parameters()``.
     public let parametersMap: WiroJSON
 
     /// Creates a dynamic request for `model`.
+    ///
+    /// - Parameters:
+    ///   - model: Target model identifier.
+    ///   - parameters: Wire parameters for `/Run`.
     public init(model: WiroModelID, parameters: WiroJSON) {
         self.model = model
         self.parametersMap = parameters
     }
 
+    /// Builds the wire JSON dictionary for `/Run`.
     public func parameters() -> WiroJSON { parametersMap }
 }
 

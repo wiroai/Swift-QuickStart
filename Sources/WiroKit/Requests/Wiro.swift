@@ -6,8 +6,18 @@ import Foundation
 public enum Wiro {
     /// Runs any Wiro model with dynamic `parameters`.
     ///
-    /// - Parameter slug: An `owner/project` identifier.
-    /// - Throws: ``WiroError/validation`` when `slug` is malformed.
+    /// ```swift
+    /// let request = try Wiro.model(
+    ///     "owner/project",
+    ///     parameters: ["prompt": "A mountain lake"]
+    /// )
+    /// let result = try await client.subscribe(request)
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - slug: An `owner/project` identifier.
+    ///   - parameters: Wire parameters for `/Run`.
+    /// - Throws: `WiroError.validation` when `slug` is malformed.
     public static func model(
         _ slug: String,
         parameters: WiroJSON
@@ -26,6 +36,12 @@ public enum Wiro {
     // MARK: - Image
 
     /// Generates images with `black-forest-labs/flux-2-pro`.
+    ///
+    /// ```swift
+    /// let result = try await client.subscribe(
+    ///     Wiro.flux2Pro(prompt: "A mountain lake", width: 1024)
+    /// )
+    /// ```
     public static func flux2Pro(
         prompt: String,
         inputImages: [WiroFileInput]? = nil,

@@ -5,6 +5,14 @@ extension WiroClient {
     ///
     /// This billable operation is not retried automatically.
     ///
+    /// ```swift
+    /// let upload = try await client.uploadFile(
+    ///     imageData,
+    ///     fileName: "photo.png"
+    /// )
+    /// let url = upload.files.first?.url
+    /// ```
+    ///
     /// - Parameters:
     ///   - data: File contents.
     ///   - fileName: Non-empty file name including extension.
@@ -30,9 +38,16 @@ extension WiroClient {
     /// Builds a multipart body on disk, streaming `url`'s contents into
     /// the part payload, then sends it with a URLSession upload task.
     ///
+    /// ```swift
+    /// let upload = try await client.uploadFile(
+    ///     at: URL(fileURLWithPath: "/tmp/photo.png")
+    /// )
+    /// ```
+    ///
     /// - Parameters:
     ///   - url: Local file URL.
     ///   - fileName: Defaults to the URL's last path component.
+    /// - Returns: Parsed upload result containing hosted file URLs.
     public func uploadFile(
         at url: URL,
         fileName: String? = nil
