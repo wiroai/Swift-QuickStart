@@ -1,0 +1,230 @@
+import Foundation
+
+/// A dictionary of JSON values keyed by string, used throughout WiroKit
+/// for request parameters and raw response payloads.
+public typealias WiroJSON = [String: WiroJSONValue]
+
+/// A Sendable JSON value that can represent any JSON document structure.
+///
+/// Use this type for model parameters and for retaining the full raw
+/// server payload on parsed models. Literal construction is supported so
+/// call sites can write natural dictionaries such as
+/// `["prompt": "hello", "seed": 42, "flag": true]`.
+public enum WiroJSONValue: Sendable, Equatable {
+    /// A JSON string.
+    case string(String)
+    /// A JSON number stored as `Double`.
+    case number(Double)
+    /// A JSON boolean.
+    case bool(Bool)
+    /// A JSON object.
+    case object(WiroJSON)
+    /// A JSON array.
+    case array([WiroJSONValue])
+    /// A JSON null.
+    case null
+
+    /// The string value when this is a `.string`, otherwise `nil`.
+    public var stringValue: String? {
+        if case .string(let value) = self { return value }
+        return nil
+    }
+
+    /// An integer coerced from a `.number` or a numeric `.string`,
+    /// otherwise `nil`.
+    public var intValue: Int? {
+        switch self {
+        case .number(let value):
+            guard value.isFinite, value.rounded() == value else { return nil }
+            return Int(value)
+        case .string(let value):
+            return Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        default:
+            return nil
+        }
+    }
+
+    /// A double coerced from a `.number` or a numeric `.string`,
+    /// otherwise `nil`.
+    public var doubleValue: Double? {
+        switch self {
+        case .number(let value):
+            return value
+        case .string(let value):
+            return Double(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        default:
+            return nil
+        }
+    }
+
+    /// The boolean value when this is a `.bool`, otherwise `nil`.
+    public var boolValue: Bool? {
+        if case .bool(let value) = self { return value }
+        return nil
+    }
+
+    /// The object dictionary when this is a `.object`, otherwise `nil`.
+    public var objectValue: WiroJSON? {
+        if case .object(let value) = self { return value }
+        return nil
+    }
+
+    /// The array when this is an `.array`, otherwise `nil`.
+    public var arrayValue: [WiroJSONValue]? {
+        if case .array(let value) = self { return value }
+        return nil
+    }
+
+    /// Whether this value is `.null`.
+    public var isNull: Bool {
+        if case .null = self { return true }
+        return false
+    }
+
+    /// Converts this value into a Foundation JSON object suitable for
+    /// `JSONSerialization`.
+    public func toAny() -> Any {
+        switch self {
+        case .string(let value):
+            return value
+        case .number(let value):
+            return value
+        case .bool(let value):
+            return value
+        case .object(let value):
+            return value.mapValues { $0.toAny() }
+        case .array(let value):
+            return value.map { $0.toAny() }
+        case .null:
+            return NSNull()
+        }
+    }
+
+    /// Creates a `WiroJSONValue` from a Foundation JSON object produced by
+    /// `JSONSerialization`.
+    ///
+    /// - Parameter any: A JSON-compatible Foundation value.
+    /// - Returns: The corresponding `WiroJSONValue`, or `nil` if `any` is
+    ///   not a supported JSON type.
+    public static func fromAny(_ any: Any) -> WiroJSONValue? {
+        switch any {
+        case is NSNull:
+            return .null
+        case let value as String:
+            return .string(value)
+        case let value as NSNumber:
+            // Bool bridges to NSNumber; distinguish via CoreFoundation.
+            if CFGetTypeID(value as CFTypeRef) == CFBooleanGetTypeID() {
+                return .bool(value.boolValue)
+            }
+            return .number(value.doubleValue)
+        case let value as [String: Any]:
+            var object: WiroJSON = [:]
+            object.reserveCapacity(value.count)
+            for (key, nested) in value {
+                guard let converted = fromAny(nested) else { return nil }
+                object[key] = converted
+            }
+            return .object(object)
+        case let value as [Any]:
+            var array: [WiroJSONValue] = []
+            array.reserveCapacity(value.count)
+            for nested in value {
+                guard let converted = fromAny(nested) else { return nil }
+                array.append(converted)
+            }
+            return .array(array)
+        default:
+            return nil
+        }
+    }
+}
+
+extension WiroJSONValue: Codable {
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .number(value)
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode(WiroJSON.self) {
+            self = .object(value)
+        } else if let value = try? container.decode([WiroJSONValue].self) {
+            self = .array(value)
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported JSON value."
+            )
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .number(let value):
+            try container.encode(value)
+        case .bool(let value):
+            try container.encode(value)
+        case .object(let value):
+            try container.encode(value)
+        case .array(let value):
+            try container.encode(value)
+        case .null:
+            try container.encodeNil()
+        }
+    }
+}
+
+extension WiroJSONValue: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self = .string(value)
+    }
+}
+
+extension WiroJSONValue: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
+        self = .number(Double(value))
+    }
+}
+
+extension WiroJSONValue: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: Double) {
+        self = .number(value)
+    }
+}
+
+extension WiroJSONValue: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: Bool) {
+        self = .bool(value)
+    }
+}
+
+extension WiroJSONValue: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: WiroJSONValue...) {
+        self = .array(elements)
+    }
+}
+
+extension WiroJSONValue: ExpressibleByDictionaryLiteral {
+    public init(dictionaryLiteral elements: (String, WiroJSONValue)...) {
+        var object: WiroJSON = [:]
+        object.reserveCapacity(elements.count)
+        for (key, value) in elements {
+            object[key] = value
+        }
+        self = .object(object)
+    }
+}
+
+extension WiroJSONValue: ExpressibleByNilLiteral {
+    public init(nilLiteral: ()) {
+        self = .null
+    }
+}
