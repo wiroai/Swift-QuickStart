@@ -19,6 +19,9 @@ extension WiroClient {
     ) async throws -> WiroRunResult {
         let callback = try callbackURL.map(Self.validateCallbackURL)
         var body = parameters
+        if Self.containsFileInput(body) {
+            body = try await resolveFileInputs(body)
+        }
         if let callback {
             body["callbackUrl"] = .string(callback.absoluteString)
         }

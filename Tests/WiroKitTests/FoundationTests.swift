@@ -51,7 +51,7 @@ struct WiroJSONValueTests {
             "missing": nil,
         ]
 
-        let any = original.toAny()
+        let any = try original.toAny()
         let data = try JSONSerialization.data(
             withJSONObject: any,
             options: []

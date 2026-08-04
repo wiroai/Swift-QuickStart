@@ -14,6 +14,15 @@ public protocol WiroHTTPTransport: Sendable {
     func perform(
         _ request: URLRequest
     ) async throws -> (Data, HTTPURLResponse)
+
+    /// Uploads the contents of `fileURL` as the request body.
+    ///
+    /// Used for multipart uploads built on disk so large files are not
+    /// buffered entirely in memory.
+    func upload(
+        _ request: URLRequest,
+        fromFile fileURL: URL
+    ) async throws -> (Data, HTTPURLResponse)
 }
 
 /// The default `URLSession`-backed transport.
@@ -33,6 +42,27 @@ public struct URLSessionHTTPTransport: WiroHTTPTransport {
     ) async throws -> (Data, HTTPURLResponse) {
         do {
             let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw WiroError.network(
+                    message: "The server returned a non-HTTP response.",
+                    underlying: nil
+                )
+            }
+            return (data, http)
+        } catch {
+            throw Self.mapTransportError(error)
+        }
+    }
+
+    public func upload(
+        _ request: URLRequest,
+        fromFile fileURL: URL
+    ) async throws -> (Data, HTTPURLResponse) {
+        do {
+            let (data, response) = try await session.upload(
+                for: request,
+                fromFile: fileURL
+            )
             guard let http = response as? HTTPURLResponse else {
                 throw WiroError.network(
                     message: "The server returned a non-HTTP response.",

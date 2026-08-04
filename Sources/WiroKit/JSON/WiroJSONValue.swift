@@ -10,6 +10,15 @@ public typealias WiroJSON = [String: WiroJSONValue]
 /// server payload on parsed models. Literal construction is supported so
 /// call sites can write natural dictionaries such as
 /// `["prompt": "hello", "seed": 42, "flag": true]`.
+///
+/// ## File inputs
+///
+/// ``fileInput(_:)`` embeds a ``WiroFileInput`` in parameter trees so
+/// call sites stay ergonomic:
+/// `["inputImage": [.fileInput(.data(bytes, fileName: "a.png"))]]`.
+/// That case is **never** encoded to the wire — ``encode(to:)`` throws.
+/// ``WiroClient/runModel`` resolves every nested file input to a URL
+/// string before encoding.
 public enum WiroJSONValue: Sendable, Equatable {
     /// A JSON string.
     case string(String)
@@ -23,6 +32,8 @@ public enum WiroJSONValue: Sendable, Equatable {
     case array([WiroJSONValue])
     /// A JSON null.
     case null
+    /// A local or remote file input that must be resolved before encoding.
+    case fileInput(WiroFileInput)
 
     /// The string value when this is a `.string`, otherwise `nil`.
     public var stringValue: String? {
@@ -30,7 +41,7 @@ public enum WiroJSONValue: Sendable, Equatable {
         return nil
     }
 
-    /// An integer coerced from a `.number` or a numeric `.string`,
+    /// Extracts an integer coerced from a `.number` or a numeric `.string`,
     /// otherwise `nil`.
     public var intValue: Int? {
         switch self {
@@ -39,7 +50,7 @@ public enum WiroJSONValue: Sendable, Equatable {
             return Int(value)
         case .string(let value):
             return Int(value.trimmingCharacters(in: .whitespacesAndNewlines))
-        default:
+        case .bool, .object, .array, .null, .fileInput:
             return nil
         }
     }
@@ -52,7 +63,7 @@ public enum WiroJSONValue: Sendable, Equatable {
             return value
         case .string(let value):
             return Double(value.trimmingCharacters(in: .whitespacesAndNewlines))
-        default:
+        case .bool, .object, .array, .null, .fileInput:
             return nil
         }
     }
@@ -81,9 +92,18 @@ public enum WiroJSONValue: Sendable, Equatable {
         return false
     }
 
+    /// The file input when this is a `.fileInput`, otherwise `nil`.
+    public var fileInputValue: WiroFileInput? {
+        if case .fileInput(let value) = self { return value }
+        return nil
+    }
+
     /// Converts this value into a Foundation JSON object suitable for
     /// `JSONSerialization`.
-    public func toAny() -> Any {
+    ///
+    /// - Throws: `WiroError.validation` when a ``fileInput`` remains
+    ///   unresolved.
+    public func toAny() throws -> Any {
         switch self {
         case .string(let value):
             return value
@@ -92,11 +112,24 @@ public enum WiroJSONValue: Sendable, Equatable {
         case .bool(let value):
             return value
         case .object(let value):
-            return value.mapValues { $0.toAny() }
+            var object: [String: Any] = [:]
+            object.reserveCapacity(value.count)
+            for (key, nested) in value {
+                object[key] = try nested.toAny()
+            }
+            return object
         case .array(let value):
-            return value.map { $0.toAny() }
+            return try value.map { try $0.toAny() }
         case .null:
             return NSNull()
+        case .fileInput:
+            throw WiroError.validation(
+                message:
+                    "Cannot serialize an unresolved WiroFileInput; "
+                    + "resolve file inputs before encoding.",
+                statusCode: 0,
+                responseBody: nil
+            )
         }
     }
 
@@ -178,6 +211,16 @@ extension WiroJSONValue: Codable {
             try container.encode(value)
         case .null:
             try container.encodeNil()
+        case .fileInput:
+            throw EncodingError.invalidValue(
+                self,
+                EncodingError.Context(
+                    codingPath: encoder.codingPath,
+                    debugDescription:
+                        "WiroJSONValue.fileInput cannot be encoded. "
+                        + "Resolve file inputs before sending a request."
+                )
+            )
         }
     }
 }

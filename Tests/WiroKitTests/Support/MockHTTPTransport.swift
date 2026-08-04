@@ -37,6 +37,15 @@ actor MockHTTPTransport: WiroHTTPTransport {
         return try await handler(request)
     }
 
+    func upload(
+        _ request: URLRequest,
+        fromFile fileURL: URL
+    ) async throws -> (Data, HTTPURLResponse) {
+        var annotated = request
+        annotated.httpBody = try Data(contentsOf: fileURL)
+        return try await perform(annotated)
+    }
+
     var requestCount: Int { requests.count }
 
     func request(at index: Int) -> URLRequest? {

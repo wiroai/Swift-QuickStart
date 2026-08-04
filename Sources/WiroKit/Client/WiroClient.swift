@@ -55,15 +55,15 @@ public actor WiroClient {
     /// Retry policy for transient failures.
     public let retryPolicy: WiroRetryPolicy
 
-    private let apiKey: String?
-    private let apiSecret: String?
-    private let proxyHeaders: [String: String]
-    private let transport: any WiroHTTPTransport
-    private let logger: WiroLogger?
-    private let clock: WiroClock
-    private let nonceProvider: WiroNonceProvider
-    private let sleeper: WiroSleeper
-    private let jitterProvider: WiroJitterProvider
+    let apiKey: String?
+    let apiSecret: String?
+    let proxyHeaders: [String: String]
+    let transport: any WiroHTTPTransport
+    let logger: WiroLogger?
+    let clock: WiroClock
+    let nonceProvider: WiroNonceProvider
+    let sleeper: WiroSleeper
+    let jitterProvider: WiroJitterProvider
 
     // MARK: - Init (API key)
 
@@ -405,9 +405,75 @@ public actor WiroClient {
         }
     }
 
-    // MARK: - Private helpers
+    // MARK: - Helpers (shared with extensions)
 
-    private func retryOrThrow(
+    func makeURL(path: String) throws -> URL {
+        let trimmedPath = path.hasPrefix("/") ? path : "/" + path
+        let base = baseURL.absoluteString
+        guard let url = URL(string: base + trimmedPath) else {
+            throw WiroError.validation(
+                message: "Could not build request URL for path \(path).",
+                statusCode: 0,
+                responseBody: nil
+            )
+        }
+        return url
+    }
+
+    func encodeBody(_ body: WiroJSON) throws -> Data {
+        do {
+            return try JSONEncoder().encode(WiroJSONValue.object(body))
+        } catch {
+            throw WiroError.validation(
+                message: "Could not encode request body as JSON.",
+                statusCode: 0,
+                responseBody: nil
+            )
+        }
+    }
+
+    func durationToTimeInterval(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return TimeInterval(components.seconds)
+            + TimeInterval(components.attoseconds)
+            / 1_000_000_000_000_000_000
+    }
+
+    func checkCancellation() throws {
+        do {
+            try Task.checkCancellation()
+        } catch {
+            throw WiroError.cancelled
+        }
+    }
+
+    func log(_ event: WiroLogEvent) {
+        logger?(event)
+    }
+
+    func logFailure(
+        _ error: WiroError,
+        url: URL,
+        attempt: Int
+    ) {
+        log(
+            WiroLogEvent(
+                level: .error,
+                message: "Request failed.",
+                method: "POST",
+                url: url.absoluteString,
+                retryCount: attempt,
+                error: error.errorDescription
+            )
+        )
+    }
+
+    func durationSince(_ started: Date) -> Duration {
+        let elapsed = clock().timeIntervalSince(started)
+        return .seconds(max(0, elapsed))
+    }
+
+    func retryOrThrow(
         error: WiroError,
         attempt: inout Int,
         retryable: Bool,
@@ -449,7 +515,7 @@ public actor WiroClient {
         attempt += 1
     }
 
-    private func retryDelay(
+    func retryDelay(
         for error: WiroError,
         attempt: Int,
         headerRetryAfter: TimeInterval?
@@ -478,80 +544,130 @@ public actor WiroClient {
         }
     }
 
-    private func makeURL(path: String) throws -> URL {
-        let trimmedPath = path.hasPrefix("/") ? path : "/" + path
-        let base = baseURL.absoluteString
-        guard let url = URL(string: base + trimmedPath) else {
-            throw WiroError.validation(
-                message: "Could not build request URL for path \(path).",
-                statusCode: 0,
-                responseBody: nil
-            )
-        }
-        return url
-    }
-
-    private func encodeBody(_ body: WiroJSON) throws -> Data {
-        do {
-            return try JSONEncoder().encode(WiroJSONValue.object(body))
-        } catch {
-            throw WiroError.validation(
-                message: "Could not encode request body as JSON.",
-                statusCode: 0,
-                responseBody: nil
-            )
-        }
-    }
-
-    private func nextDelay(forRetryIndex index: Int) -> Duration {
+    func nextDelay(forRetryIndex index: Int) -> Duration {
         retryPolicy.delay(
             forRetryIndex: index,
             jitterFactor: jitterProvider()
         )
     }
 
-    private func maxDuration(_ lhs: Duration, _ rhs: Duration) -> Duration {
+    func maxDuration(_ lhs: Duration, _ rhs: Duration) -> Duration {
         lhs > rhs ? lhs : rhs
     }
 
-    private func durationSince(_ started: Date) -> Duration {
-        let elapsed = clock().timeIntervalSince(started)
-        return .seconds(max(0, elapsed))
-    }
-
-    private func durationToTimeInterval(_ duration: Duration) -> TimeInterval {
-        let components = duration.components
-        return TimeInterval(components.seconds)
-            + TimeInterval(components.attoseconds)
-            / 1_000_000_000_000_000_000
-    }
-
-    private func checkCancellation() throws {
-        do {
-            try Task.checkCancellation()
-        } catch {
-            throw WiroError.cancelled
-        }
-    }
-
-    private func log(_ event: WiroLogEvent) {
-        logger?(event)
-    }
-
-    private func logFailure(
-        _ error: WiroError,
+    /// Executes a prepared request with retry / envelope handling.
+    func execute<T: Sendable>(
+        _ request: URLRequest,
         url: URL,
-        attempt: Int
-    ) {
-        log(
-            WiroLogEvent(
-                level: .error,
-                message: "Request failed.",
-                method: "POST",
-                url: url.absoluteString,
-                retryCount: attempt,
-                error: error.errorDescription
+        retryable: Bool,
+        transportCall: @Sendable (URLRequest) async throws -> (
+            Data,
+            HTTPURLResponse
+        ),
+        parse: @Sendable (WiroJSON) throws -> T
+    ) async throws -> T {
+        var attempt = 0
+        var currentRequest = request
+
+        while true {
+            try checkCancellation()
+
+            log(
+                WiroLogEvent(
+                    level: .debug,
+                    message: "Starting request.",
+                    method: currentRequest.httpMethod ?? "POST",
+                    url: url.absoluteString,
+                    retryCount: attempt
+                )
             )
-        )
+
+            // Refresh auth headers each attempt (signature nonce).
+            for (key, value) in authHeaders(
+                includeContentType: currentRequest.value(
+                    forHTTPHeaderField: "Content-Type"
+                )?.hasPrefix("application/json") == true
+            ) {
+                // Don't overwrite multipart Content-Type with JSON.
+                if key == "Content-Type",
+                   currentRequest.value(forHTTPHeaderField: "Content-Type")
+                   != nil,
+                   !(currentRequest.value(forHTTPHeaderField: "Content-Type")?
+                       .hasPrefix("application/json") ?? false)
+                {
+                    continue
+                }
+                currentRequest.setValue(value, forHTTPHeaderField: key)
+            }
+
+            let started = clock()
+            let result: Result<(Data, HTTPURLResponse), WiroError>
+            do {
+                let response = try await transportCall(currentRequest)
+                result = .success(response)
+            } catch let error as WiroError {
+                result = .failure(error)
+            } catch is CancellationError {
+                throw WiroError.cancelled
+            } catch {
+                result = .failure(
+                    .network(
+                        message: "The network request failed.",
+                        underlying: String(describing: type(of: error))
+                    )
+                )
+            }
+
+            let duration = durationSince(started)
+
+            switch result {
+            case .success(let (data, response)):
+                let status = response.statusCode
+                log(
+                    WiroLogEvent(
+                        level: .info,
+                        message: "Request completed.",
+                        method: currentRequest.httpMethod ?? "POST",
+                        url: url.absoluteString,
+                        statusCode: status,
+                        duration: duration,
+                        retryCount: attempt
+                    )
+                )
+
+                let retryAfter = WiroResponseEnvelope
+                    .retryAfterInterval(from: response)
+
+                do {
+                    let object = try WiroResponseEnvelope
+                        .decodeSuccessObject(
+                            data: data,
+                            statusCode: status,
+                            retryAfter: retryAfter
+                        )
+                    return try parse(object)
+                } catch let error as WiroError {
+                    try await retryOrThrow(
+                        error: error,
+                        attempt: &attempt,
+                        retryable: retryable,
+                        retryAfter: retryAfter,
+                        url: url
+                    )
+                }
+
+            case .failure(let error):
+                if case .cancelled = error {
+                    throw error
+                }
+                try await retryOrThrow(
+                    error: error,
+                    attempt: &attempt,
+                    retryable: retryable,
+                    retryAfter: nil,
+                    url: url
+                )
+            }
+        }
     }
 }

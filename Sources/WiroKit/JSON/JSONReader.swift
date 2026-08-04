@@ -25,7 +25,7 @@ enum JSONReader {
             return String(number)
         case .bool(let bool):
             return bool ? "true" : "false"
-        case .null, .object, .array:
+        case .null, .object, .array, .fileInput:
             return nil
         }
     }
@@ -51,7 +51,7 @@ enum JSONReader {
                 in: .whitespacesAndNewlines
             )
             return Int(trimmed)
-        case .bool, .null, .object, .array:
+        case .bool, .null, .object, .array, .fileInput:
             return nil
         }
     }
@@ -77,7 +77,7 @@ enum JSONReader {
                 return nil
             }
             return parsed
-        case .bool, .null, .object, .array:
+        case .bool, .null, .object, .array, .fileInput:
             return nil
         }
     }
@@ -120,7 +120,7 @@ enum JSONReader {
             if number == 1 { return true }
             if number == 0 { return false }
             return fallback
-        case .null, .object, .array:
+        case .null, .object, .array, .fileInput:
             return fallback
         }
     }
@@ -206,7 +206,7 @@ enum JSONReader {
                 string,
                 onMalformedJSON: onMalformedJSON
             )
-        case .null, .bool, .number, .array:
+        case .null, .bool, .number, .array, .fileInput:
             return nil
         }
     }
