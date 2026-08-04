@@ -8,29 +8,6 @@ public enum WiroTaskTrackingMode: String, Sendable, Equatable {
     case webSocket
 }
 
-/// A typed JSON event produced by WebSocket tracking.
-///
-/// Fully wired in Step 8. Declared now so ``WiroTaskUpdate`` can reference
-/// it; construction stays internal until the socket client lands.
-public struct WiroSocketMessage: Sendable, Equatable {
-    /// Parsed lifecycle status from the frame `type` field.
-    public let status: WiroTaskStatus
-    /// Original status / frame type string.
-    public let statusRawValue: String
-    /// Full raw payload for forward compatibility.
-    public let raw: WiroJSON
-
-    /// Whether this message represents a terminal task status.
-    public var isTerminal: Bool { status.isTerminal }
-
-    /// Internal constructor used by WebSocket parsing (Step 8).
-    init(status: WiroTaskStatus, statusRawValue: String, raw: WiroJSON) {
-        self.status = status
-        self.statusRawValue = statusRawValue
-        self.raw = raw
-    }
-}
-
 /// A normalized task update produced by polling or WebSocket tracking.
 public enum WiroTaskUpdate: Sendable, Equatable {
     /// A complete task snapshot produced by polling.

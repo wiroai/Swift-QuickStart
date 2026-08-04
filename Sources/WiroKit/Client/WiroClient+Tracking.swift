@@ -90,7 +90,7 @@ extension WiroClient {
     ///   - parameters: Model parameters (may include file inputs).
     ///   - callbackURL: Optional completion webhook.
     ///   - timeout: Tracking deadline (must be `> 0`).
-    ///   - trackingMode: `.polling` in this step; `.webSocket` in Step 8.
+    ///   - trackingMode: `.polling` or `.webSocket`.
     ///   - onUpdate: Optional callback for each tracking update.
     public func subscribe(
         _ model: WiroModelID,
@@ -197,13 +197,201 @@ extension WiroClient {
                 onUpdate: onUpdate
             )
         case .webSocket:
-            // STEP 8 INTEGRATION POINT: replace with watchTaskSocket +
-            // polling fallback for the remaining timeout budget.
-            throw WiroError.unknownAPI(
-                message: "WebSocket tracking is not implemented yet.",
+            return try await trackWithSocket(
+                taskToken,
+                timeout: timeout,
+                onUpdate: onUpdate
+            )
+        }
+    }
+
+    /// Streams realtime task events over WebSocket.
+    ///
+    /// Registers `token` with a `task_info` handshake, then yields frames
+    /// until a terminal message, timeout, cancellation, or premature close.
+    /// The socket is always closed on exit.
+    public func watchTaskSocket(
+        _ token: WiroTaskToken,
+        timeout: Duration = .seconds(600)
+    ) throws -> AsyncThrowingStream<WiroSocketEvent, Error> {
+        guard timeout > .zero else {
+            throw WiroError.validation(
+                message: "timeout must be greater than zero.",
                 statusCode: 0,
                 responseBody: nil
             )
+        }
+
+        let socketURL = self.socketURL
+        let requestTimeout = self.requestTimeout
+        let factory = self.socketSessionFactory
+        let sleeper = self.sleeper
+
+        return AsyncThrowingStream { continuation in
+            let sessionBox = SessionBox()
+            let task = Task {
+                do {
+                    let active = try await factory(socketURL, requestTimeout)
+                    await sessionBox.store(active)
+                    try await active.sendText(
+                        Self.taskInfoHandshakeJSON(token: token)
+                    )
+
+                    let timedOut = TimeoutFlag()
+                    let timeoutWatcher = Task {
+                        do {
+                            try await sleeper(timeout)
+                            timedOut.mark()
+                            await active.close()
+                        } catch {
+                            // Cancelled when the receive loop finishes.
+                        }
+                    }
+                    defer { timeoutWatcher.cancel() }
+
+                    while !Task.isCancelled {
+                        try Task.checkCancellation()
+                        let frame: WiroSocketFrame
+                        do {
+                            frame = try await active.receiveFrame()
+                        } catch is CancellationError {
+                            throw WiroError.cancelled
+                        } catch is WiroSocketClosedError {
+                            if Task.isCancelled {
+                                throw WiroError.cancelled
+                            }
+                            if timedOut.isSet {
+                                throw WiroError.timedOut(
+                                    message:
+                                        "Task socket did not finish within \(Self.timeoutDescription(timeout)).",
+                                    timeout: timeout
+                                )
+                            }
+                            throw WiroError.webSocket(
+                                message:
+                                    "The Wiro task WebSocket closed before a terminal event.",
+                                underlying: nil
+                            )
+                        }
+
+                        let event = try Self.decodeSocketFrame(frame)
+                        continuation.yield(event)
+                        if event.isTerminal {
+                            continuation.finish()
+                            await active.close()
+                            await sessionBox.clear()
+                            return
+                        }
+                    }
+
+                    try Task.checkCancellation()
+                    throw WiroError.cancelled
+                } catch is CancellationError {
+                    continuation.finish(throwing: WiroError.cancelled)
+                } catch let error as WiroError {
+                    continuation.finish(throwing: error)
+                } catch {
+                    continuation.finish(
+                        throwing: WiroError.webSocket(
+                            message: "The Wiro task WebSocket failed.",
+                            underlying: String(describing: type(of: error))
+                        )
+                    )
+                }
+                await sessionBox.closeIfNeeded()
+            }
+            continuation.onTermination = { @Sendable _ in
+                task.cancel()
+                Task { await sessionBox.closeIfNeeded() }
+            }
+        }
+    }
+
+    func trackWithSocket(
+        _ token: WiroTaskToken,
+        timeout: Duration,
+        onUpdate: (@Sendable (WiroTaskUpdate) -> Void)?
+    ) async throws -> WiroTask {
+        let deadline = clock().addingTimeInterval(
+            durationToTimeInterval(timeout)
+        )
+
+        do {
+            let stream = try watchTaskSocket(token, timeout: timeout)
+            for try await event in stream {
+                onUpdate?(WiroTaskUpdate.from(socketEvent: event))
+            }
+        } catch let error as WiroError {
+            switch error {
+            case .webSocket:
+                break
+            case .timedOut, .cancelled:
+                throw error
+            default:
+                throw error
+            }
+        } catch is CancellationError {
+            throw WiroError.cancelled
+        }
+
+        try checkCancellation()
+        let task = try await getTask(token)
+        if task.status.isTerminal {
+            return task
+        }
+
+        let remainingSeconds = deadline.timeIntervalSince(clock())
+        guard remainingSeconds > 0 else {
+            throw WiroError.timedOut(
+                message:
+                    "Task did not finish within \(Self.timeoutDescription(timeout)).",
+                timeout: timeout
+            )
+        }
+
+        return try await trackWithPolling(
+            token,
+            timeout: .seconds(remainingSeconds),
+            onUpdate: onUpdate
+        )
+    }
+
+    static func taskInfoHandshakeJSON(token: WiroTaskToken) -> String {
+        let escaped = token.rawValue
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return #"{"type":"task_info","tasktoken":"\#(escaped)"}"#
+    }
+
+    static func decodeSocketFrame(
+        _ frame: WiroSocketFrame
+    ) throws -> WiroSocketEvent {
+        switch frame {
+        case .binary(let data):
+            return .binary(data)
+        case .text(let text):
+            let data = Data(text.utf8)
+            let decoded: WiroJSONValue
+            do {
+                decoded = try JSONDecoder().decode(
+                    WiroJSONValue.self,
+                    from: data
+                )
+            } catch {
+                throw WiroError.webSocket(
+                    message:
+                        "The Wiro task WebSocket returned invalid JSON.",
+                    underlying: nil
+                )
+            }
+            guard case .object(let object) = decoded else {
+                throw WiroError.webSocket(
+                    message:
+                        "The Wiro task WebSocket returned a non-object JSON payload.",
+                    underlying: nil
+                )
+            }
+            return .message(WiroSocketMessage.parse(object))
         }
     }
 
@@ -278,5 +466,35 @@ extension WiroClient {
             + Double(timeout.components.attoseconds)
             / 1_000_000_000_000_000_000
         return "\(total) seconds"
+    }
+}
+
+/// Thread-safe flag set by the socket timeout watcher.
+final class TimeoutFlag: @unchecked Sendable {
+    nonisolated(unsafe) private var value = false
+
+    var isSet: Bool { value }
+
+    func mark() {
+        value = true
+    }
+}
+
+/// Holds the active socket so cancellation can close it promptly.
+actor SessionBox {
+    private var session: (any WiroSocketSession)?
+
+    func store(_ session: any WiroSocketSession) {
+        self.session = session
+    }
+
+    func clear() {
+        session = nil
+    }
+
+    func closeIfNeeded() async {
+        let current = session
+        session = nil
+        await current?.close()
     }
 }

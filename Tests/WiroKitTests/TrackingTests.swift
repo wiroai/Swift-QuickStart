@@ -258,30 +258,6 @@ struct TrackingTests {
         }
     }
 
-    @Test("subscribe webSocket mode is unimplemented stub")
-    func subscribeWebSocketStub() async throws {
-        let model = try WiroModelID(owner: "a", project: "b")
-        let transport = MockHTTPTransport { _ in
-            runResponse(token: "tok")
-        }
-        let client = try await ClientFixtures.makeClient(transport: transport)
-
-        do {
-            _ = try await client.subscribe(
-                model,
-                timeout: .seconds(30),
-                trackingMode: .webSocket
-            )
-            Issue.record("Expected unimplemented stub")
-        } catch let error as WiroError {
-            guard case .unknownAPI(let message, _, _) = error else {
-                Issue.record("Unexpected \(error)")
-                return
-            }
-            #expect(message.contains("WebSocket"))
-        }
-    }
-
     @Test("subscribeStream yields snapshots then finishes")
     func subscribeStreamSnapshots() async throws {
         let model = try WiroModelID(owner: "a", project: "b")
@@ -353,48 +329,6 @@ struct TrackingTests {
 }
 
 // MARK: - Helpers
-
-private final class ControllableClock: @unchecked Sendable {
-    private var now: Date
-    private(set) var sleepDurations: [Duration] = []
-
-    init(now: Date = Date(timeIntervalSince1970: 1_700_000_000)) {
-        self.now = now
-    }
-
-    var clock: WiroClock {
-        { [self] in self.now }
-    }
-
-    var sleeper: WiroSleeper {
-        { [self] duration in
-            try Task.checkCancellation()
-            self.sleepDurations.append(duration)
-            self.now = self.now.addingTimeInterval(durationToSeconds(duration))
-        }
-    }
-}
-
-private final class UpdateBox: @unchecked Sendable {
-    private var _updates: [WiroTaskUpdate] = []
-
-    var updates: [WiroTaskUpdate] { _updates }
-
-    var statuses: [WiroTaskStatus] {
-        _updates.compactMap(\.status)
-    }
-
-    func append(_ update: WiroTaskUpdate) {
-        _updates.append(update)
-    }
-}
-
-private func durationToSeconds(_ duration: Duration) -> TimeInterval {
-    let components = duration.components
-    return TimeInterval(components.seconds)
-        + TimeInterval(components.attoseconds)
-        / 1_000_000_000_000_000_000
-}
 
 private func runResponse(token: String) -> (Data, HTTPURLResponse) {
     MockHTTP.response(

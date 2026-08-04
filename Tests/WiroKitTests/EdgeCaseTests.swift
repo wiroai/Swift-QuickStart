@@ -32,6 +32,105 @@ struct EdgeCaseTests {
         )
     }
 
+    @Test("socket payload accessors and progress string decoding")
+    func socketPayloadAccessors() {
+        let log = WiroSocketMessage(
+            status: .running,
+            statusRawValue: "task_start",
+            payload: .log("hi"),
+            raw: [:]
+        )
+        #expect(log.messageText == "hi")
+        #expect(log.progress == nil)
+
+        let progressJSON: WiroJSON = [
+            "type": .string("task_start"),
+            "message": .string(
+                #"{"percentage":12,"stepCurrent":1,"stepTotal":10}"#
+            ),
+        ]
+        let fromString = WiroSocketMessage.parse(progressJSON)
+        #expect(fromString.progress?.percentage == 12)
+
+        let unknown = WiroSocketMessage(
+            status: .running,
+            statusRawValue: "task_start",
+            payload: .unknown(.number(1)),
+            raw: [:]
+        )
+        #expect(unknown.messageText == nil)
+        #expect(unknown.progress == nil)
+        #expect(unknown.outputs.isEmpty)
+
+        #expect(
+            WiroSocketTiming.timeInterval(.milliseconds(1500)) == 1.5
+        )
+        #expect(
+            WiroClient.timeoutDescription(.milliseconds(500))
+                .contains("0.5")
+        )
+    }
+
+    @Test("subscribeStream webSocket yields events then finishes")
+    func subscribeStreamWebSocket() async throws {
+        let world = ScriptedSocketWorld()
+        await world.session.configure(
+            frames: [
+                .text(
+                    #"{"type":"task_postprocess_end","result":true}"#
+                ),
+            ]
+        )
+        let transport = MockHTTPTransport(handlers: [
+            { _ in
+                MockHTTP.response(
+                    status: 200,
+                    json:
+                        #"{"result":true,"taskid":"1","socketaccesstoken":"tok"}"#
+                )
+            },
+            { _ in
+                MockHTTP.response(
+                    status: 200,
+                    json: #"""
+                    {"tasklist":[{
+                      "id":"1",
+                      "socketaccesstoken":"tok",
+                      "status":"task_postprocess_end",
+                      "pexit":0
+                    }]}
+                    """#
+                )
+            },
+        ])
+        let client = try await ClientFixtures.makeClient(
+            transport: transport,
+            sleeper: parkingSleeper,
+            socketSessionFactory: world.factory
+        )
+        let model = try WiroModelID(owner: "a", project: "b")
+        var count = 0
+        for try await update in try await client.subscribeStream(
+            model,
+            timeout: .seconds(30),
+            trackingMode: .webSocket
+        ) {
+            count += 1
+            #expect(update.isTerminal || update.status == .completed)
+        }
+        #expect(count == 1)
+    }
+
+    @Test("WebSocket session close is idempotent")
+    func webSocketCloseIsIdempotent() async {
+        let session = URLSessionWebSocketSession.connect(
+            url: URL(string: "wss://127.0.0.1:9/v1")!,
+            timeout: .milliseconds(50)
+        )
+        await session.close()
+        await session.close()
+    }
+
     @Test("log levels are comparable")
     func logLevelOrdering() {
         #expect(WiroLogLevel.debug < .info)

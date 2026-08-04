@@ -108,7 +108,8 @@ enum ClientFixtures {
         nonce: String = nonce,
         jitter: Double = 1.0,
         clock: WiroClock? = nil,
-        sleeper: WiroSleeper? = nil
+        sleeper: WiroSleeper? = nil,
+        socketSessionFactory: WiroSocketSessionFactory? = nil
     ) async throws -> WiroClient {
         let authType: WiroAuthType =
             (apiSecret?.isEmpty == false) ? .signature : .apiKey
@@ -120,6 +121,8 @@ enum ClientFixtures {
             baseURL: baseURL,
             socketURL: socketURL,
             transport: transport,
+            socketSessionFactory: socketSessionFactory
+                ?? WiroClient.defaultSocketSessionFactory,
             pollInterval: pollInterval,
             requestTimeout: .seconds(30),
             retryPolicy: retryPolicy,
@@ -135,8 +138,10 @@ enum ClientFixtures {
         transport: MockHTTPTransport,
         proxyURL: URL = URL(string: "https://proxy.example.com/v1")!,
         headers: [String: String] = ["Authorization": "Bearer tok"],
+        socketURL: URL = WiroClient.defaultSocketURL,
         logger: WiroLogger? = nil,
-        retryPolicy: WiroRetryPolicy = .default
+        retryPolicy: WiroRetryPolicy = .default,
+        socketSessionFactory: WiroSocketSessionFactory? = nil
     ) async throws -> WiroClient {
         try WiroClient(
             apiKey: nil,
@@ -144,8 +149,10 @@ enum ClientFixtures {
             proxyHeaders: headers,
             authType: .proxy,
             baseURL: proxyURL,
-            socketURL: WiroClient.defaultSocketURL,
+            socketURL: socketURL,
             transport: transport,
+            socketSessionFactory: socketSessionFactory
+                ?? WiroClient.defaultSocketSessionFactory,
             pollInterval: .seconds(3),
             requestTimeout: .seconds(30),
             retryPolicy: retryPolicy,

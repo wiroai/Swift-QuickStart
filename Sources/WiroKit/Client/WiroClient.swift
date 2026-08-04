@@ -59,6 +59,7 @@ public actor WiroClient {
     let apiSecret: String?
     let proxyHeaders: [String: String]
     let transport: any WiroHTTPTransport
+    let socketSessionFactory: WiroSocketSessionFactory
     let logger: WiroLogger?
     let clock: WiroClock
     let nonceProvider: WiroNonceProvider
@@ -90,6 +91,7 @@ public actor WiroClient {
             baseURL: baseURL,
             socketURL: socketURL,
             transport: transport,
+            socketSessionFactory: WiroClient.defaultSocketSessionFactory,
             pollInterval: pollInterval,
             requestTimeout: requestTimeout,
             retryPolicy: retryPolicy,
@@ -130,6 +132,7 @@ public actor WiroClient {
             baseURL: proxyURL,
             socketURL: socketURL,
             transport: transport,
+            socketSessionFactory: WiroClient.defaultSocketSessionFactory,
             pollInterval: pollInterval,
             requestTimeout: requestTimeout,
             retryPolicy: retryPolicy,
@@ -154,6 +157,8 @@ public actor WiroClient {
         baseURL: URL,
         socketURL: URL,
         transport: any WiroHTTPTransport,
+        socketSessionFactory: @escaping WiroSocketSessionFactory =
+            WiroClient.defaultSocketSessionFactory,
         pollInterval: Duration,
         requestTimeout: Duration,
         retryPolicy: WiroRetryPolicy,
@@ -212,6 +217,7 @@ public actor WiroClient {
         self.socketURL = socketURL
         self.proxyHeaders = proxyHeaders
         self.transport = transport
+        self.socketSessionFactory = socketSessionFactory
         self.pollInterval = pollInterval
         self.requestTimeout = requestTimeout
         self.retryPolicy = retryPolicy
