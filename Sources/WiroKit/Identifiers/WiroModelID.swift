@@ -33,6 +33,15 @@ public struct WiroModelID: Sendable, Hashable, Codable,
         self.project = project
     }
 
+    /// Creates a model identifier without re-validating catalog slugs.
+    ///
+    /// Used by typed request factories whose owner/project pairs are
+    /// compile-time constants already known to match the segment rules.
+    init(catalogOwner owner: String, project: String) {
+        self.owner = owner
+        self.project = project
+    }
+
     /// Parses a model identifier from an `"owner/project"` string.
     ///
     /// - Parameter parsing: A slash-separated owner/project string.
