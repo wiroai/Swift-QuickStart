@@ -147,6 +147,47 @@ enum JSONReader {
         list(object[key])
     }
 
+    /// Returns the array for `value`, or an empty array when absent.
+    static func values(_ value: WiroJSONValue?) -> [WiroJSONValue] {
+        value?.arrayValue ?? []
+    }
+
+    /// Returns the array for `key`, or an empty array when absent.
+    static func values(_ object: WiroJSON, _ key: String) -> [WiroJSONValue] {
+        values(object[key])
+    }
+
+    /// Extracts string elements from a JSON array, dropping non-strings.
+    static func stringList(_ value: WiroJSONValue?) -> [String] {
+        values(value).compactMap { string($0) }
+    }
+
+    /// Extracts string elements for `key`.
+    static func stringList(_ object: WiroJSON, _ key: String) -> [String] {
+        stringList(object[key])
+    }
+
+    /// Maps array elements to objects, skipping empty/non-object entries.
+    static func objects(
+        _ value: WiroJSONValue?,
+        onMalformedJSON: MalformedJSONHandler? = nil
+    ) -> [WiroJSON] {
+        values(value).compactMap { element in
+            let object = map(element, onMalformedJSON: onMalformedJSON)
+            guard let object, !object.isEmpty else { return nil }
+            return object
+        }
+    }
+
+    /// Maps the array at `key` to objects.
+    static func objects(
+        _ object: WiroJSON,
+        _ key: String,
+        onMalformedJSON: MalformedJSONHandler? = nil
+    ) -> [WiroJSON] {
+        objects(object[key], onMalformedJSON: onMalformedJSON)
+    }
+
     /// Extracts an object from `value`.
     ///
     /// Also accepts a JSON-encoded string. If that nested JSON is
