@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build & Test (iOS Simulator)
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app \
+            | grep -vi beta | sort -V | tail -n 1)"
+          xcodebuild -version
+
+      - name: Run tests with coverage
+        run: |
+          xcodebuild test \
+            -scheme WiroKit \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult
+
+      - name: Enforce 90% line coverage on WiroKit
+        run: |
+          set -euo pipefail
+          xcrun xccov view --report --json TestResults.xcresult \
+            | python3 -c '
+          import json, sys
+
+          report = json.load(sys.stdin)
+          target = None
+          for candidate in report.get("targets", []):
+              name = candidate.get("name", "")
+              if "test" in name.lower():
+                  continue
+              if name == "WiroKit" or name.startswith("WiroKit."):
+                  target = candidate
+                  break
+          if target is None:
+              sys.exit("Could not find the WiroKit target in the report.")
+          executable = int(target.get("executableLines", 0))
+          if executable == 0:
+              sys.exit("WiroKit has no executable lines in the coverage report.")
+          coverage = float(target["lineCoverage"])
+          threshold = 0.90
+          print(f"WiroKit line coverage: {coverage:.1%}")
+          if coverage < threshold:
+              sys.exit(
+                  f"Line coverage {coverage:.1%} is below the required "
+                  f"{threshold:.0%}."
+              )
+          print(f"Coverage meets the required {threshold:.0%} gate.")
+          '
