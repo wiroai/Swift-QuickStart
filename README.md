@@ -89,6 +89,7 @@ case .failure(_, let reason):
 
 - Product docs: [https://wiro.ai/docs](https://wiro.ai/docs)
 - DocC catalog ships with the package (`Sources/WiroKit/WiroKit.docc`)
+- Example app: open `Example/WiroExample.xcodeproj` (see `Example/README.md`)
 
 ## License
 

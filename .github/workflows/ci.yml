@@ -65,3 +65,12 @@ jobs:
             -scheme WiroKit \
             -destination 'generic/platform=iOS' \
             -derivedDataPath "$RUNNER_TEMP/WiroKitDocDerivedData"
+
+      - name: Build example app (unsigned simulator)
+        run: |
+          xcodebuild build \
+            -project Example/WiroExample.xcodeproj \
+            -scheme WiroExample \
+            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$RUNNER_TEMP/WiroExampleDerivedData"
