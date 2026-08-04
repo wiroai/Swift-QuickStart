@@ -102,10 +102,12 @@ enum ClientFixtures {
         apiSecret: String? = nil,
         baseURL: URL = WiroClient.defaultBaseURL,
         socketURL: URL = WiroClient.defaultSocketURL,
+        pollInterval: Duration = .seconds(3),
         retryPolicy: WiroRetryPolicy = .default,
         logger: WiroLogger? = nil,
         nonce: String = nonce,
         jitter: Double = 1.0,
+        clock: WiroClock? = nil,
         sleeper: WiroSleeper? = nil
     ) async throws -> WiroClient {
         let authType: WiroAuthType =
@@ -118,11 +120,11 @@ enum ClientFixtures {
             baseURL: baseURL,
             socketURL: socketURL,
             transport: transport,
-            pollInterval: .seconds(3),
+            pollInterval: pollInterval,
             requestTimeout: .seconds(30),
             retryPolicy: retryPolicy,
             logger: logger,
-            clock: { Date(timeIntervalSince1970: 1_700_000_000) },
+            clock: clock ?? { Date(timeIntervalSince1970: 1_700_000_000) },
             nonceProvider: { nonce },
             sleeper: sleeper ?? { _ in },
             jitterProvider: { jitter }
