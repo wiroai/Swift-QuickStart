@@ -1,0 +1,557 @@
+import CryptoKit
+import Foundation
+
+/// Sleeps for a duration; injectable so tests avoid real waits.
+typealias WiroSleeper = @Sendable (Duration) async throws -> Void
+
+/// Supplies the current instant; injectable for deterministic tests.
+typealias WiroClock = @Sendable () -> Date
+
+/// Supplies a millisecond-nonce string; injectable for signature vectors.
+typealias WiroNonceProvider = @Sendable () -> String
+
+/// Supplies a jitter factor in `[0.8, 1.2]` for retry backoff.
+typealias WiroJitterProvider = @Sendable () -> Double
+
+/// Client for the Wiro AI REST and (later) WebSocket APIs.
+///
+/// Construct with an API key (and optional secret for signature auth) or
+/// in proxy mode with static headers. All networking goes through an
+/// injectable `WiroHTTPTransport` so unit tests never hit the network.
+public actor WiroClient {
+    /// Default REST base URL.
+    public static let defaultBaseURL: URL = {
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.wiro.ai"
+        components.path = "/v1"
+        return components.url!
+    }()
+
+    /// Default WebSocket URL.
+    public static let defaultSocketURL: URL = {
+        var components = URLComponents()
+        components.scheme = "wss"
+        components.host = "socket.wiro.ai"
+        components.path = "/v1"
+        return components.url!
+    }()
+
+    /// Configured authentication mode.
+    public let authType: WiroAuthType
+
+    /// REST base URL with trailing slashes removed.
+    public let baseURL: URL
+
+    /// WebSocket endpoint URL.
+    public let socketURL: URL
+
+    /// Interval between task-status polling requests.
+    public let pollInterval: Duration
+
+    /// Per-attempt HTTP / WebSocket connect timeout.
+    public let requestTimeout: Duration
+
+    /// Retry policy for transient failures.
+    public let retryPolicy: WiroRetryPolicy
+
+    private let apiKey: String?
+    private let apiSecret: String?
+    private let proxyHeaders: [String: String]
+    private let transport: any WiroHTTPTransport
+    private let logger: WiroLogger?
+    private let clock: WiroClock
+    private let nonceProvider: WiroNonceProvider
+    private let sleeper: WiroSleeper
+    private let jitterProvider: WiroJitterProvider
+
+    // MARK: - Init (API key)
+
+    /// Creates a client that authenticates with a Wiro API key.
+    ///
+    /// When `apiSecret` is provided, requests use signature auth
+    /// (`x-nonce` + `x-signature`). Otherwise only `x-api-key` is sent.
+    public init(
+        apiKey: String,
+        apiSecret: String? = nil,
+        baseURL: URL = WiroClient.defaultBaseURL,
+        socketURL: URL = WiroClient.defaultSocketURL,
+        transport: any WiroHTTPTransport = URLSessionHTTPTransport(),
+        pollInterval: Duration = .seconds(3),
+        requestTimeout: Duration = .seconds(30),
+        retryPolicy: WiroRetryPolicy = .default,
+        logger: WiroLogger? = nil
+    ) throws {
+        try self.init(
+            apiKey: apiKey,
+            apiSecret: apiSecret,
+            proxyHeaders: [:],
+            authType: Self.resolveAuthType(apiSecret: apiSecret),
+            baseURL: baseURL,
+            socketURL: socketURL,
+            transport: transport,
+            pollInterval: pollInterval,
+            requestTimeout: requestTimeout,
+            retryPolicy: retryPolicy,
+            logger: logger,
+            clock: { Date() },
+            nonceProvider: {
+                String(Int64(Date().timeIntervalSince1970 * 1000))
+            },
+            sleeper: { duration in
+                try await Task.sleep(for: duration)
+            },
+            jitterProvider: { Double.random(in: 0.8...1.2) }
+        )
+    }
+
+    // MARK: - Init (proxy)
+
+    /// Creates a client that sends REST requests through a proxy.
+    ///
+    /// No Wiro credentials are stored on device. `headers` are attached to
+    /// every REST request. The WebSocket still connects directly to
+    /// `socketURL`.
+    public init(
+        proxyURL: URL,
+        headers: [String: String] = [:],
+        socketURL: URL = WiroClient.defaultSocketURL,
+        transport: any WiroHTTPTransport = URLSessionHTTPTransport(),
+        pollInterval: Duration = .seconds(3),
+        requestTimeout: Duration = .seconds(30),
+        retryPolicy: WiroRetryPolicy = .default,
+        logger: WiroLogger? = nil
+    ) throws {
+        try self.init(
+            apiKey: nil,
+            apiSecret: nil,
+            proxyHeaders: headers,
+            authType: .proxy,
+            baseURL: proxyURL,
+            socketURL: socketURL,
+            transport: transport,
+            pollInterval: pollInterval,
+            requestTimeout: requestTimeout,
+            retryPolicy: retryPolicy,
+            logger: logger,
+            clock: { Date() },
+            nonceProvider: {
+                String(Int64(Date().timeIntervalSince1970 * 1000))
+            },
+            sleeper: { duration in
+                try await Task.sleep(for: duration)
+            },
+            jitterProvider: { Double.random(in: 0.8...1.2) }
+        )
+    }
+
+    /// Internal designated initializer with injectable seams for tests.
+    init(
+        apiKey: String?,
+        apiSecret: String?,
+        proxyHeaders: [String: String],
+        authType: WiroAuthType,
+        baseURL: URL,
+        socketURL: URL,
+        transport: any WiroHTTPTransport,
+        pollInterval: Duration,
+        requestTimeout: Duration,
+        retryPolicy: WiroRetryPolicy,
+        logger: WiroLogger?,
+        clock: @escaping WiroClock,
+        nonceProvider: @escaping WiroNonceProvider,
+        sleeper: @escaping WiroSleeper,
+        jitterProvider: @escaping WiroJitterProvider
+    ) throws {
+        if authType != .proxy {
+            let trimmedKey = apiKey?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !trimmedKey.isEmpty else {
+                throw WiroError.validation(
+                    message: "apiKey must be a non-empty string.",
+                    statusCode: 0,
+                    responseBody: nil
+                )
+            }
+            self.apiKey = trimmedKey
+
+            if let secret = apiSecret {
+                let trimmedSecret = secret.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                guard !trimmedSecret.isEmpty else {
+                    throw WiroError.validation(
+                        message:
+                            "apiSecret must be a non-empty string when provided.",
+                        statusCode: 0,
+                        responseBody: nil
+                    )
+                }
+                self.apiSecret = trimmedSecret
+            } else {
+                self.apiSecret = nil
+            }
+        } else {
+            self.apiKey = nil
+            self.apiSecret = nil
+        }
+
+        try WiroURLValidation.validate(
+            baseURL,
+            kind: .http,
+            label: "baseURL"
+        )
+        try WiroURLValidation.validate(
+            socketURL,
+            kind: .webSocket,
+            label: "socketURL"
+        )
+
+        self.authType = authType
+        self.baseURL = WiroURLValidation.trimmingTrailingSlashes(baseURL)
+        self.socketURL = socketURL
+        self.proxyHeaders = proxyHeaders
+        self.transport = transport
+        self.pollInterval = pollInterval
+        self.requestTimeout = requestTimeout
+        self.retryPolicy = retryPolicy
+        self.logger = logger
+        self.clock = clock
+        self.nonceProvider = nonceProvider
+        self.sleeper = sleeper
+        self.jitterProvider = jitterProvider
+    }
+
+    private static func resolveAuthType(apiSecret: String?) -> WiroAuthType {
+        guard let apiSecret else { return .apiKey }
+        let trimmed = apiSecret.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        return trimmed.isEmpty ? .apiKey : .signature
+    }
+
+    // MARK: - Auth headers
+
+    /// Builds authentication headers for a REST request.
+    ///
+    /// - Parameter includeContentType: When `true`, sets
+    ///   `Content-Type: application/json`. Multipart uploads pass `false`.
+    func authHeaders(includeContentType: Bool = true) -> [String: String] {
+        var headers: [String: String] = [:]
+
+        switch authType {
+        case .apiKey:
+            if let apiKey {
+                headers["x-api-key"] = apiKey
+            }
+        case .signature:
+            if let apiKey, let apiSecret {
+                let nonce = nonceProvider()
+                headers["x-api-key"] = apiKey
+                headers["x-nonce"] = nonce
+                headers["x-signature"] = Self.signature(
+                    apiKey: apiKey,
+                    apiSecret: apiSecret,
+                    nonce: nonce
+                )
+            }
+        case .proxy:
+            for (key, value) in proxyHeaders {
+                headers[key] = value
+            }
+        }
+
+        if includeContentType {
+            headers["Content-Type"] = "application/json"
+        }
+        return headers
+    }
+
+    /// HMAC-SHA256 signature as lowercase hex.
+    ///
+    /// `HMAC-SHA256(key: UTF8(apiKey), message: UTF8(apiSecret + nonce))`.
+    static func signature(
+        apiKey: String,
+        apiSecret: String,
+        nonce: String
+    ) -> String {
+        let key = SymmetricKey(data: Data(apiKey.utf8))
+        let message = Data((apiSecret + nonce).utf8)
+        let mac = HMAC<SHA256>.authenticationCode(
+            for: message,
+            using: key
+        )
+        return mac.map { String(format: "%02x", $0) }.joined()
+    }
+
+    // MARK: - POST helper
+
+    /// Performs an authenticated JSON POST and parses the envelope.
+    func post<T: Sendable>(
+        _ path: String,
+        body: WiroJSON,
+        retryable: Bool = true,
+        parse: @Sendable (WiroJSON) throws -> T
+    ) async throws -> T {
+        let url = try makeURL(path: path)
+        let bodyData = try encodeBody(body)
+        let timeoutSeconds = durationToTimeInterval(requestTimeout)
+
+        var attempt = 0
+
+        while true {
+            try checkCancellation()
+
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = bodyData
+            request.timeoutInterval = timeoutSeconds
+            for (key, value) in authHeaders(includeContentType: true) {
+                request.setValue(value, forHTTPHeaderField: key)
+            }
+
+            log(
+                WiroLogEvent(
+                    level: .debug,
+                    message: "Starting request.",
+                    method: "POST",
+                    url: url.absoluteString,
+                    retryCount: attempt
+                )
+            )
+
+            let started = clock()
+            let result: Result<(Data, HTTPURLResponse), WiroError>
+            do {
+                let response = try await transport.perform(request)
+                result = .success(response)
+            } catch let error as WiroError {
+                result = .failure(error)
+            } catch is CancellationError {
+                throw WiroError.cancelled
+            } catch {
+                result = .failure(
+                    .network(
+                        message: "The network request failed.",
+                        underlying: String(describing: type(of: error))
+                    )
+                )
+            }
+
+            let duration = durationSince(started)
+
+            switch result {
+            case .success(let (data, response)):
+                let status = response.statusCode
+                log(
+                    WiroLogEvent(
+                        level: .info,
+                        message: "Request completed.",
+                        method: "POST",
+                        url: url.absoluteString,
+                        statusCode: status,
+                        duration: duration,
+                        retryCount: attempt
+                    )
+                )
+
+                let retryAfter = WiroResponseEnvelope
+                    .retryAfterInterval(from: response)
+
+                do {
+                    let object = try WiroResponseEnvelope
+                        .decodeSuccessObject(
+                            data: data,
+                            statusCode: status,
+                            retryAfter: retryAfter
+                        )
+                    return try parse(object)
+                } catch let error as WiroError {
+                    try await retryOrThrow(
+                        error: error,
+                        attempt: &attempt,
+                        retryable: retryable,
+                        retryAfter: retryAfter,
+                        url: url
+                    )
+                }
+
+            case .failure(let error):
+                if case .cancelled = error {
+                    throw error
+                }
+                try await retryOrThrow(
+                    error: error,
+                    attempt: &attempt,
+                    retryable: retryable,
+                    retryAfter: nil,
+                    url: url
+                )
+            }
+        }
+    }
+
+    /// Handler for malformed nested JSON encountered while parsing.
+    func malformedJSONHandler() -> JSONReader.MalformedJSONHandler {
+        { [logger] raw in
+            logger?(
+                WiroLogEvent(
+                    level: .debug,
+                    message:
+                        "Ignored malformed nested JSON string "
+                        + "(length \(raw.count))."
+                )
+            )
+        }
+    }
+
+    // MARK: - Private helpers
+
+    private func retryOrThrow(
+        error: WiroError,
+        attempt: inout Int,
+        retryable: Bool,
+        retryAfter: TimeInterval?,
+        url: URL
+    ) async throws {
+        guard retryable, attempt < retryPolicy.maxRetries else {
+            logFailure(error, url: url, attempt: attempt)
+            throw error
+        }
+
+        guard let delay = retryDelay(
+            for: error,
+            attempt: attempt,
+            headerRetryAfter: retryAfter
+        ) else {
+            logFailure(error, url: url, attempt: attempt)
+            throw error
+        }
+
+        log(
+            WiroLogEvent(
+                level: .warning,
+                message: "Retrying request after transient failure.",
+                retryCount: attempt + 1,
+                error: error.errorDescription
+            )
+        )
+
+        try checkCancellation()
+        do {
+            try await sleeper(delay)
+        } catch is CancellationError {
+            throw WiroError.cancelled
+        } catch let sleepError as WiroError {
+            throw sleepError
+        }
+        try checkCancellation()
+        attempt += 1
+    }
+
+    private func retryDelay(
+        for error: WiroError,
+        attempt: Int,
+        headerRetryAfter: TimeInterval?
+    ) -> Duration? {
+        let policyDelay = nextDelay(forRetryIndex: attempt)
+
+        switch error {
+        case .rateLimited(_, _, let associatedRetryAfter, _):
+            let minimum = associatedRetryAfter ?? headerRetryAfter
+            if let minimum {
+                return maxDuration(policyDelay, .seconds(minimum))
+            }
+            return policyDelay
+
+        case .unknownAPI(_, let statusCode, _):
+            guard retryPolicy.shouldRetry(statusCode: statusCode) else {
+                return nil
+            }
+            return policyDelay
+
+        case .network, .timedOut:
+            return policyDelay
+
+        default:
+            return nil
+        }
+    }
+
+    private func makeURL(path: String) throws -> URL {
+        let trimmedPath = path.hasPrefix("/") ? path : "/" + path
+        let base = baseURL.absoluteString
+        guard let url = URL(string: base + trimmedPath) else {
+            throw WiroError.validation(
+                message: "Could not build request URL for path \(path).",
+                statusCode: 0,
+                responseBody: nil
+            )
+        }
+        return url
+    }
+
+    private func encodeBody(_ body: WiroJSON) throws -> Data {
+        do {
+            return try JSONEncoder().encode(WiroJSONValue.object(body))
+        } catch {
+            throw WiroError.validation(
+                message: "Could not encode request body as JSON.",
+                statusCode: 0,
+                responseBody: nil
+            )
+        }
+    }
+
+    private func nextDelay(forRetryIndex index: Int) -> Duration {
+        retryPolicy.delay(
+            forRetryIndex: index,
+            jitterFactor: jitterProvider()
+        )
+    }
+
+    private func maxDuration(_ lhs: Duration, _ rhs: Duration) -> Duration {
+        lhs > rhs ? lhs : rhs
+    }
+
+    private func durationSince(_ started: Date) -> Duration {
+        let elapsed = clock().timeIntervalSince(started)
+        return .seconds(max(0, elapsed))
+    }
+
+    private func durationToTimeInterval(_ duration: Duration) -> TimeInterval {
+        let components = duration.components
+        return TimeInterval(components.seconds)
+            + TimeInterval(components.attoseconds)
+            / 1_000_000_000_000_000_000
+    }
+
+    private func checkCancellation() throws {
+        do {
+            try Task.checkCancellation()
+        } catch {
+            throw WiroError.cancelled
+        }
+    }
+
+    private func log(_ event: WiroLogEvent) {
+        logger?(event)
+    }
+
+    private func logFailure(
+        _ error: WiroError,
+        url: URL,
+        attempt: Int
+    ) {
+        log(
+            WiroLogEvent(
+                level: .error,
+                message: "Request failed.",
+                method: "POST",
+                url: url.absoluteString,
+                retryCount: attempt,
+                error: error.errorDescription
+            )
+        )
+    }
+}
