@@ -1,6 +1,0 @@
-{
-  "inputImage": ["https://example.com/in.png"],
-  "upscaleFactor": 2,
-  "outputType": "png",
-  "compressionQuality": 90
-}

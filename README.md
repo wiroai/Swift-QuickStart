@@ -4,6 +4,7 @@
 [![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)](https://swift.org)
 [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-blue.svg)](https://developer.apple.com/ios/)
 [![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Official Swift SDK for discovering and running AI models on
 [Wiro](https://wiro.ai).
@@ -93,4 +94,4 @@ case .failure(_, let reason):
 
 ## License
 
-See the repository license file.
+MIT — see [LICENSE](LICENSE).

@@ -142,7 +142,6 @@ All failures surface as ``WiroError``:
 - ``WiroNanoBananaProRequest``
 - ``WiroSeedreamV4Request``
 - ``WiroGrokImagineImageRequest``
-- ``WiroUpscalerRequest``
 - ``WiroRunwayGen45Request``
 - ``WiroSeedance20Request``
 - ``WiroKlingV3Request``

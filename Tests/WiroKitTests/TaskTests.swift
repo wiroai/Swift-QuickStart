@@ -387,6 +387,7 @@ struct RunTaskClientTests {
 
     @Test("cancelTask and killTask parse boolean result")
     func cancelAndKill() async throws {
+        let id = try #require(WiroTaskID(rawValue: "42"))
         let token = try #require(WiroTaskToken(rawValue: "tok"))
 
         let cancelTransport = MockHTTPTransport { request in
@@ -395,7 +396,7 @@ struct RunTaskClientTests {
                     == "https://api.wiro.ai/v1/Task/Cancel"
             )
             let body = try decodeRequestJSON(request)
-            #expect(body["tasktoken"] == .string("tok"))
+            #expect(body["taskid"] == .string("42"))
             return MockHTTP.response(
                 status: 200,
                 json: #"{"result":true}"#
@@ -404,13 +405,15 @@ struct RunTaskClientTests {
         let cancelClient = try await ClientFixtures.makeClient(
             transport: cancelTransport
         )
-        #expect(try await cancelClient.cancelTask(token) == true)
+        #expect(try await cancelClient.cancelTask(id) == true)
 
         let killTransport = MockHTTPTransport { request in
             #expect(
                 request.url?.absoluteString
                     == "https://api.wiro.ai/v1/Task/Kill"
             )
+            let body = try decodeRequestJSON(request)
+            #expect(body["socketaccesstoken"] == .string("tok"))
             // Missing `result` passes the envelope (treated as success) but
             // parses as false via the boolean fallback.
             return MockHTTP.response(
@@ -422,6 +425,19 @@ struct RunTaskClientTests {
             transport: killTransport
         )
         #expect(try await killClient.killTask(token) == false)
+
+        let killByIDTransport = MockHTTPTransport { request in
+            let body = try decodeRequestJSON(request)
+            #expect(body["taskid"] == .string("42"))
+            return MockHTTP.response(
+                status: 200,
+                json: #"{"result":true}"#
+            )
+        }
+        let killByIDClient = try await ClientFixtures.makeClient(
+            transport: killByIDTransport
+        )
+        #expect(try await killByIDClient.killTask(id) == true)
     }
 }
 

@@ -170,6 +170,7 @@ struct WiroClientAuthTests {
         let headers = await client.authHeaders(includeContentType: true)
         #expect(headers["x-api-key"] == ClientFixtures.apiKey)
         #expect(headers["Content-Type"] == "application/json")
+        #expect(headers["User-Agent"] == "WiroKit/\(WiroKitInfo.version)")
         #expect(headers["x-nonce"] == nil)
         #expect(headers["x-signature"] == nil)
     }
@@ -186,6 +187,7 @@ struct WiroClientAuthTests {
         #expect(headers["x-nonce"] == ClientFixtures.nonce)
         #expect(headers["x-signature"] == ClientFixtures.expectedSignature)
         #expect(headers["Content-Type"] == "application/json")
+        #expect(headers["User-Agent"] == "WiroKit/\(WiroKitInfo.version)")
     }
 
     @Test("multipart auth omits JSON Content-Type")
@@ -197,6 +199,7 @@ struct WiroClientAuthTests {
         let headers = await client.authHeaders(includeContentType: false)
         #expect(headers["Content-Type"] == nil)
         #expect(headers["x-api-key"] == ClientFixtures.apiKey)
+        #expect(headers["User-Agent"] == "WiroKit/\(WiroKitInfo.version)")
     }
 
     @Test("proxy mode sends static headers only")
@@ -211,6 +214,7 @@ struct WiroClientAuthTests {
         #expect(headers["X-Custom"] == "1")
         #expect(headers["x-api-key"] == nil)
         #expect(headers["Content-Type"] == "application/json")
+        #expect(headers["User-Agent"] == "WiroKit/\(WiroKitInfo.version)")
     }
 }
 

@@ -71,15 +71,6 @@ struct WireContractTests {
                 ).parameters()
             ),
             (
-                "upscaler",
-                try Wiro.upscaler(
-                    inputImage: sampleFile,
-                    upscaleFactor: 2,
-                    outputType: .png,
-                    compressionQuality: 90
-                ).parameters()
-            ),
-            (
                 "runway_gen45",
                 try Wiro.runwayGen45(
                     prompt: "A drone shot",
@@ -233,7 +224,7 @@ struct WireContractTests {
             fixture: "Wire/endpoints/task_cancel.json",
             pathSuffix: "/Task/Cancel"
         ) { client in
-            _ = try await client.cancelTask(WiroTaskToken(rawValue: "tok-abc")!)
+            _ = try await client.cancelTask(WiroTaskID(rawValue: "task-123")!)
         }
 
         try await assertEndpointBody(

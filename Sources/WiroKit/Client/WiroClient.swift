@@ -265,7 +265,9 @@ public actor WiroClient {
     /// - Parameter includeContentType: When `true`, sets
     ///   `Content-Type: application/json`. Multipart uploads pass `false`.
     func authHeaders(includeContentType: Bool = true) -> [String: String] {
-        var headers: [String: String] = [:]
+        var headers = [
+            "User-Agent": "WiroKit/\(WiroKitInfo.version)",
+        ]
 
         switch authType {
         case .apiKey:

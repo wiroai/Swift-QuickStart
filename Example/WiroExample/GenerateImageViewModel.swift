@@ -9,6 +9,7 @@ final class GenerateImageViewModel {
     var width: Int = 1024
     var height: Int = 1024
     var state: GenerationState = .idle
+    var taskID: WiroTaskID?
     var taskToken: WiroTaskToken?
     var showCancelAPIOptions = false
 
@@ -45,6 +46,7 @@ final class GenerateImageViewModel {
         }
 
         generationTask?.cancel()
+        taskID = nil
         taskToken = nil
         state = .running(status: "Submitting…")
 
@@ -64,11 +66,11 @@ final class GenerateImageViewModel {
 
     /// Cancels a queued task via the Wiro API.
     func cancelRemote() {
-        guard let token = taskToken else { return }
+        guard let id = taskID else { return }
         Task {
             do {
                 let client = try makeClient()
-                _ = try await client.cancelTask(token)
+                _ = try await client.cancelTask(id)
                 cancelLocal()
             } catch {
                 state = .failed(message: error.friendlyMessage)
@@ -78,11 +80,15 @@ final class GenerateImageViewModel {
 
     /// Kills a running task via the Wiro API.
     func killRemote() {
-        guard let token = taskToken else { return }
+        guard taskToken != nil || taskID != nil else { return }
         Task {
             do {
                 let client = try makeClient()
-                _ = try await client.killTask(token)
+                if let token = taskToken {
+                    _ = try await client.killTask(token)
+                } else if let id = taskID {
+                    _ = try await client.killTask(id)
+                }
                 cancelLocal()
             } catch {
                 state = .failed(message: error.friendlyMessage)
@@ -114,6 +120,9 @@ final class GenerateImageViewModel {
 
                 switch update {
                 case .snapshot(let task):
+                    if let id = task.id {
+                        taskID = id
+                    }
                     if let token = task.taskToken {
                         taskToken = token
                     }
@@ -137,6 +146,9 @@ final class GenerateImageViewModel {
                         return
                     }
                 case .event(let message):
+                    if let id = message.id {
+                        taskID = id
+                    }
                     if let token = message.taskToken {
                         taskToken = token
                     }

@@ -217,17 +217,6 @@ public enum WiroGrokImagineImageResolution: String, Sendable, Equatable, Hashabl
     public var apiValue: String { rawValue }
 }
 
-/// Wire values for ``WiroUpscalerOutputType``.
-public enum WiroUpscalerOutputType: String, Sendable, Equatable, Hashable {
-    /// Wire value `png`.
-    case png
-    /// Wire value `jpeg`.
-    case jpeg
-
-    /// Value sent to the Wiro API.
-    public var apiValue: String { rawValue }
-}
-
 /// Wire values for ``WiroRunwayGen45Ratio``.
 public enum WiroRunwayGen45Ratio: String, Sendable, Equatable, Hashable {
     /// Wire value `auto`.

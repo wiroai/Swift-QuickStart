@@ -43,10 +43,12 @@ struct GenerateImageView: View {
                 Button("Cancel local Task", role: .destructive) {
                     model.cancelLocal()
                 }
-                if model.taskToken != nil {
+                if model.taskID != nil {
                     Button("Cancel via API") {
                         model.cancelRemote()
                     }
+                }
+                if model.taskToken != nil || model.taskID != nil {
                     Button("Kill via API", role: .destructive) {
                         model.killRemote()
                     }
@@ -54,7 +56,9 @@ struct GenerateImageView: View {
                 Button("Dismiss", role: .cancel) {}
             } message: {
                 Text(
-                    "Local cancel stops the stream immediately. API cancel/kill asks Wiro to stop the remote task when a token is available."
+                    "Local cancel stops the stream immediately. "
+                        + "API cancel/kill asks Wiro to stop the remote task "
+                        + "when task identifiers are available."
                 )
             }
         }

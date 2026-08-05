@@ -78,12 +78,12 @@ extension WiroClient {
 
     /// Requests cancellation of a queued task.
     ///
-    /// - Parameter token: Task access token from a run response.
+    /// - Parameter id: Server-assigned task identifier from a run response.
     /// - Returns: `true` when the API accepted the cancel request.
-    public func cancelTask(_ token: WiroTaskToken) async throws -> Bool {
+    public func cancelTask(_ id: WiroTaskID) async throws -> Bool {
         try await post(
             "/Task/Cancel",
-            body: ["tasktoken": .string(token.rawValue)]
+            body: ["taskid": .string(id.rawValue)]
         ) { json in
             JSONReader.boolean(json, "result", fallback: false) ?? false
         }
@@ -96,7 +96,20 @@ extension WiroClient {
     public func killTask(_ token: WiroTaskToken) async throws -> Bool {
         try await post(
             "/Task/Kill",
-            body: ["tasktoken": .string(token.rawValue)]
+            body: ["socketaccesstoken": .string(token.rawValue)]
+        ) { json in
+            JSONReader.boolean(json, "result", fallback: false) ?? false
+        }
+    }
+
+    /// Stops a running task using its server-side task id.
+    ///
+    /// - Parameter id: Server-assigned task identifier from a run response.
+    /// - Returns: `true` when the API accepted the kill request.
+    public func killTask(_ id: WiroTaskID) async throws -> Bool {
+        try await post(
+            "/Task/Kill",
+            body: ["taskid": .string(id.rawValue)]
         ) { json in
             JSONReader.boolean(json, "result", fallback: false) ?? false
         }

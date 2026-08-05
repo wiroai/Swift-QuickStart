@@ -142,21 +142,6 @@ public enum Wiro {
         )
     }
 
-    /// Upscales an image with `google/upscaler`.
-    public static func upscaler(
-        inputImage: WiroFileInput,
-        upscaleFactor: Int,
-        outputType: WiroUpscalerOutputType,
-        compressionQuality: Int? = nil
-    ) throws -> WiroUpscalerRequest {
-        try WiroUpscalerRequest(
-            inputImage: inputImage,
-            upscaleFactor: upscaleFactor,
-            outputType: outputType,
-            compressionQuality: compressionQuality
-        )
-    }
-
     // MARK: - Video
 
     /// Generates video with `runway/gen-4-5`.

@@ -22,5 +22,5 @@ The project depends on the local `WiroKit` package at the repository root.
 ## Cancel
 
 While a run is in progress, **Cancel** stops the local Swift `Task`
-immediately. When a task token is available you can also cancel or kill the
-remote Wiro task.
+immediately. When the remote task identifiers are available, you can also
+cancel a queued task or kill a running task through the Wiro API.

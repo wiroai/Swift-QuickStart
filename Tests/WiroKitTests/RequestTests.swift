@@ -166,29 +166,6 @@ struct RequestTests {
         ])
     }
 
-    @Test("Upscaler serialization")
-    func upscaler() throws {
-        let req = try Wiro.upscaler(
-            inputImage: sampleFile,
-            upscaleFactor: 2,
-            outputType: .png,
-            compressionQuality: 90
-        )
-        #expect(req.model.slug == "google/upscaler")
-        #expect(req.parameters() == [
-            "inputImage": .array([.string(sampleURL.absoluteString)]),
-            "upscaleFactor": .number(2),
-            "outputType": .string("png"),
-            "compressionQuality": .number(90),
-        ])
-        let minimal = try Wiro.upscaler(
-            inputImage: sampleFile,
-            upscaleFactor: 3,
-            outputType: .jpeg
-        )
-        #expect(minimal.parameters()["compressionQuality"] == nil)
-    }
-
     @Test("RunwayGen45 full and validation")
     func runwayGen45() throws {
         let full = try Wiro.runwayGen45(

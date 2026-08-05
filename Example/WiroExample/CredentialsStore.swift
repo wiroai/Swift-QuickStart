@@ -46,28 +46,37 @@ final class CredentialsStore {
 }
 
 enum Keychain {
+    private static let service =
+        Bundle.main.bundleIdentifier ?? "ai.wiro.WiroExample"
+
     static func set(_ value: String, for key: String) {
-        let data = Data(value.utf8)
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key,
+        let query = baseQuery(for: key)
+        guard !value.isEmpty else {
+            SecItemDelete(query as CFDictionary)
+            return
+        }
+
+        let attributes: [String: Any] = [
+            kSecValueData as String: Data(value.utf8),
+            kSecAttrAccessible as String:
+                kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
-        SecItemDelete(query as CFDictionary)
-        guard !value.isEmpty else { return }
-        var add = query
-        add[kSecValueData as String] = data
-        add[kSecAttrAccessible as String] =
-            kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(add as CFDictionary, nil)
+        let status = SecItemUpdate(
+            query as CFDictionary,
+            attributes as CFDictionary
+        )
+        guard status == errSecItemNotFound else { return }
+
+        var item = query
+        attributes.forEach { item[$0.key] = $0.value }
+        SecItemAdd(item as CFDictionary, nil)
     }
 
     static func get(_ key: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: key,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
+        var query = baseQuery(for: key)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess,
@@ -77,5 +86,13 @@ enum Keychain {
             return nil
         }
         return string
+    }
+
+    private static func baseQuery(for key: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+        ]
     }
 }
