@@ -12,6 +12,9 @@ let package = Package(
     targets: [
         .target(
             name: "WiroKit",
+            resources: [
+                .process("PrivacyInfo.xcprivacy"),
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
             ]

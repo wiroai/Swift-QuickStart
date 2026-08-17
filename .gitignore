@@ -13,3 +13,7 @@ xcuserdata/
 
 # Test artifacts
 TestResults*
+
+# Local secrets
+.env
+.env.*

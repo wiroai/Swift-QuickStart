@@ -13,7 +13,7 @@ typealias WiroNonceProvider = @Sendable () -> String
 /// Supplies a jitter factor in `[0.8, 1.2]` for retry backoff.
 typealias WiroJitterProvider = @Sendable () -> Double
 
-/// Client for the Wiro AI REST and (later) WebSocket APIs.
+/// Client for the Wiro AI REST and WebSocket APIs.
 ///
 /// Construct with an API key (and optional secret for signature auth) or
 /// in proxy mode with static headers. All networking goes through an

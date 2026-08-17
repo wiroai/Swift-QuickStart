@@ -66,8 +66,8 @@ extension WiroClient {
     /// Starts a typed model request and streams tracking updates.
     ///
     /// ```swift
-    /// for try await update in try client.subscribeStream(
-    ///     Wiro.flux2Pro(prompt: "A mountain lake")
+    /// for try await update in try await client.subscribeStream(
+    ///     try Wiro.flux2Pro(prompt: "A mountain lake")
     /// ) {
     ///     print(update.status as Any)
     /// }

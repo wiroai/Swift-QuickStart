@@ -7,7 +7,7 @@ extension WiroClient {
     /// the stream with `WiroError.cancelled`.
     ///
     /// ```swift
-    /// for try await task in try client.watchTask(token) {
+    /// for try await task in try await client.watchTask(token) {
     ///     print(task.status)
     ///     if task.status.isTerminal { break }
     /// }
@@ -143,7 +143,7 @@ extension WiroClient {
     /// Cancelling the stream consumer stops tracking.
     ///
     /// ```swift
-    /// for try await update in try client.subscribeStream(
+    /// for try await update in try await client.subscribeStream(
     ///     WiroModelID(parsing: "owner/project")!,
     ///     parameters: ["prompt": "A mountain lake"]
     /// ) {
@@ -257,7 +257,7 @@ extension WiroClient {
     /// The socket is always closed on exit.
     ///
     /// ```swift
-    /// for try await event in try client.watchTaskSocket(token) {
+    /// for try await event in try await client.watchTaskSocket(token) {
     ///     switch event {
     ///     case .message(let message):
     ///         print(message.status)
