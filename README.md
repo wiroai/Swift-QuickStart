@@ -1,6 +1,6 @@
 # WiroKit
 
-[![CI](https://github.com/yasinertekinwiro/Swift-QuickStart/actions/workflows/ci.yml/badge.svg)](https://github.com/yasinertekinwiro/Swift-QuickStart/actions/workflows/ci.yml)
+[![CI](https://github.com/wiroai/Swift-QuickStart/actions/workflows/ci.yml/badge.svg)](https://github.com/wiroai/Swift-QuickStart/actions/workflows/ci.yml)
 [![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)](https://swift.org)
 [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-blue.svg)](https://developer.apple.com/ios/)
 [![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
@@ -37,7 +37,7 @@ Add WiroKit to your `Package.swift`:
 ```swift
 dependencies: [
     .package(
-        url: "https://github.com/yasinertekinwiro/Swift-QuickStart.git",
+        url: "https://github.com/wiroai/Swift-QuickStart.git",
         from: "0.1.0"
     ),
 ],

@@ -16,7 +16,7 @@ Add the package with Swift Package Manager:
 ```swift
 dependencies: [
     .package(
-        url: "https://github.com/yasinertekinwiro/Swift-QuickStart.git",
+        url: "https://github.com/wiroai/Swift-QuickStart.git",
         from: "0.1.0"
     ),
 ],
