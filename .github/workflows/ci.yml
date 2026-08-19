@@ -19,11 +19,24 @@ jobs:
             | grep -vi beta | sort -V | tail -n 1)"
           xcodebuild -version
 
+      - name: Select an available iPhone simulator
+        run: |
+          SIMULATOR_ID="$(
+            xcrun simctl list devices available \
+              | awk -F '[()]' '/iPhone/ { print $2; exit }'
+          )"
+          if [ -z "$SIMULATOR_ID" ]; then
+            echo "No available iPhone simulator found." >&2
+            exit 1
+          fi
+          echo "SIMULATOR_DESTINATION=platform=iOS Simulator,id=$SIMULATOR_ID" \
+            >> "$GITHUB_ENV"
+
       - name: Run tests with coverage
         run: |
           xcodebuild test \
             -scheme WiroKit \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "$SIMULATOR_DESTINATION" \
             -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult
 
@@ -71,6 +84,6 @@ jobs:
           xcodebuild build \
             -project Example/WiroExample.xcodeproj \
             -scheme WiroExample \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "$SIMULATOR_DESTINATION" \
             CODE_SIGNING_ALLOWED=NO \
             -derivedDataPath "$RUNNER_TEMP/WiroExampleDerivedData"

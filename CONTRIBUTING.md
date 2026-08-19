@@ -25,9 +25,15 @@ Run these checks before opening a pull request. The package is iOS-only,
 so tests run on the iOS Simulator:
 
 ```bash
+SIMULATOR_ID="$(
+  xcrun simctl list devices available \
+    | awk -F '[()]' '/iPhone/ { print $2; exit }'
+)"
+SIMULATOR_DESTINATION="platform=iOS Simulator,id=$SIMULATOR_ID"
+
 xcodebuild test \
   -scheme WiroKit \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination "$SIMULATOR_DESTINATION" \
   -enableCodeCoverage YES
 
 xcodebuild docbuild \
@@ -37,7 +43,7 @@ xcodebuild docbuild \
 xcodebuild build \
   -project Example/WiroExample.xcodeproj \
   -scheme WiroExample \
-  -destination 'platform=iOS Simulator,name=iPhone 16' \
+  -destination "$SIMULATOR_DESTINATION" \
   CODE_SIGNING_ALLOWED=NO
 ```
 
