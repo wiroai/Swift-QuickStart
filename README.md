@@ -6,7 +6,7 @@
 
 Run image, video, audio and LLM models from iOS apps in Swift with the Wiro AI API: typed requests, live task tracking and file uploads.
 
-[![SwiftPM](https://img.shields.io/github/v/release/wiroai/Swift-QuickStart?style=for-the-badge&color=111111&label=SwiftPM&logo=swift&logoColor=white)](https://github.com/wiroai/Swift-QuickStart/releases) [![Swift 6.0+](https://img.shields.io/badge/Swift-6.0%2B-111111?style=for-the-badge&color=111111&logo=swift&logoColor=white)](https://swift.org) [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-111111?style=for-the-badge&color=111111&logo=apple&logoColor=white)](https://developer.apple.com/ios/) [![License: MIT](https://img.shields.io/badge/license-MIT-111111?style=for-the-badge&color=111111)](LICENSE)
+[![SwiftPM](https://img.shields.io/github/v/release/wiroai/Swift-QuickStart?style=for-the-badge&color=111111&label=SwiftPM&logo=swift&logoColor=white)](https://github.com/wiroai/Swift-QuickStart/releases) [![Swift 6.0+](https://img.shields.io/badge/Swift-6.0%2B-111111?style=for-the-badge&color=111111&logo=swift&logoColor=white)](https://swift.org) [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-111111?style=for-the-badge&color=111111&logo=apple&logoColor=white)](https://developer.apple.com/ios/) [![CI](https://img.shields.io/github/actions/workflow/status/wiroai/Swift-QuickStart/ci.yml?branch=main&style=for-the-badge&color=111111&label=CI&logo=githubactions&logoColor=white)](https://github.com/wiroai/Swift-QuickStart/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-111111?style=for-the-badge&color=111111)](LICENSE)
 
 [Website](https://wiro.ai) · [Models](https://wiro.ai/models) · [Docs](https://wiro.ai/docs/code-examples) · [Dashboard](https://wiro.ai/panel)
 
