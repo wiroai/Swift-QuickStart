@@ -1,20 +1,23 @@
 <div align="center">
 
-<img src="https://wiro.ai/images/logos/logo/logo.png" alt="Wiro" width="180" />
+<img src="https://wiro.ai/images/favicon/icon-512x512.png" alt="Wiro AI" width="100">
 
-# WiroKit for iOS
+# WiroKit for iOS: Swift SDK for the Wiro AI API
 
-**Official Swift SDK for discovering and running AI models on [Wiro](https://wiro.ai)**
+Run image, video, audio and LLM models from iOS apps in Swift with the Wiro AI API: typed requests, live task tracking and file uploads.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/wiroai/Swift-QuickStart/ci.yml?style=for-the-badge&label=CI)](https://github.com/wiroai/Swift-QuickStart/actions/workflows/ci.yml)
-[![Swift](https://img.shields.io/badge/Swift-6-orange?style=for-the-badge&logo=swift&logoColor=white)](https://swift.org)
-[![iOS](https://img.shields.io/badge/iOS-17%2B-blue?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/ios/)
-[![SPM](https://img.shields.io/badge/SPM-compatible-brightgreen?style=for-the-badge)](https://swift.org/package-manager/)
-[![MIT](https://img.shields.io/badge/license-MIT-6f42c1?style=for-the-badge)](LICENSE)
+[![SwiftPM](https://img.shields.io/github/v/release/wiroai/Swift-QuickStart?style=for-the-badge&color=111111&label=SwiftPM&logo=swift&logoColor=white)](https://github.com/wiroai/Swift-QuickStart/releases) [![Swift 6.0+](https://img.shields.io/badge/Swift-6.0%2B-111111?style=for-the-badge&color=111111&logo=swift&logoColor=white)](https://swift.org) [![iOS 17+](https://img.shields.io/badge/iOS-17%2B-111111?style=for-the-badge&color=111111&logo=apple&logoColor=white)](https://developer.apple.com/ios/) [![License: MIT](https://img.shields.io/badge/license-MIT-111111?style=for-the-badge&color=111111)](LICENSE)
 
-[Docs](https://wiro.ai/docs) · [Models](https://wiro.ai/models) · [Dashboard](https://wiro.ai/panel) · [Create Project](https://wiro.ai/panel/project/new)
+[Website](https://wiro.ai) · [Models](https://wiro.ai/models) · [Docs](https://wiro.ai/docs/code-examples) · [Dashboard](https://wiro.ai/panel)
 
 </div>
+
+WiroKit is the official Swift package for calling the [Wiro AI](https://wiro.ai)
+model API from iOS 17+ apps. It runs any model in the Wiro AI catalog, through
+typed request factories for popular image, video and music models or through
+`Wiro.model` with a parameter map, and follows each task by polling or over a
+WebSocket until the outputs are ready. It is written in Swift 6 with
+async/await and has no third-party dependencies.
 
 ## Features
 
@@ -33,7 +36,7 @@
 
 - iOS 17.0+
 - Swift 6 (Xcode 16 or later)
-- A [Wiro project and API key](https://wiro.ai/panel/project/new)
+- A [Wiro AI project and API key](https://wiro.ai/panel/project/new)
 
 ## Installation
 
@@ -98,7 +101,7 @@ let client = try WiroClient(
 
 Signature mode sends `x-api-key`, `x-nonce`, and an HMAC-SHA256
 `x-signature` header. The configured credentials must match the
-authentication type selected for the Wiro project.
+authentication type selected for the Wiro AI project.
 
 ### Proxy (recommended for production)
 
@@ -109,13 +112,13 @@ let client = try WiroClient(
 )
 ```
 
-Your backend attaches Wiro credentials server-side. The SDK never stores an
-API key in proxy mode. Task WebSocket streams still connect directly to Wiro
-because they authenticate with per-task tokens.
+Your backend attaches Wiro AI credentials server-side. The SDK never stores an
+API key in proxy mode. Task WebSocket streams still connect directly to
+Wiro AI because they authenticate with per-task tokens.
 
 ## Which call do I need?
 
-| I want to… | Call |
+| I want to... | Call |
 | --- | --- |
 | Generate with a supported model | `client.subscribe(Wiro.flux2Pro(...))` |
 | Run any other model | `client.subscribe(Wiro.model("owner/project", parameters: [...]))` |
@@ -129,8 +132,9 @@ because they authenticate with per-task tokens.
 
 ## Typed and dynamic requests
 
-Typed factories check required parameters, value ranges, and select options
-at compile time. Type `Wiro.` in Xcode to list them.
+Typed factories check required parameters and select options at compile
+time, and throw `WiroError.validation` when a value is out of range. Type
+`Wiro.` in Xcode to list them.
 
 | Category | Models |
 | --- | --- |
@@ -280,7 +284,7 @@ do {
 }
 ```
 
-Wiro can report application-level failures with HTTP 2xx and
+The Wiro AI API can report application-level failures with HTTP 2xx and
 `"result": false`. Those responses surface as `WiroError.apiResult`.
 
 ## Security guidance
@@ -325,18 +329,30 @@ xcodebuild build -project Example/WiroExample.xcodeproj \
   CODE_SIGNING_ALLOWED=NO
 ```
 
+## More from Wiro AI
+
+| Repository | What it is |
+| --- | --- |
+| [Wiro-MCP](https://github.com/wiroai/Wiro-MCP) | Official MCP server for Wiro AI (`@wiro-ai/wiro-mcp`) |
+| [Wiro-Plugin](https://github.com/wiroai/Wiro-Plugin) | Wiro AI plugin for Cursor, Claude Code, Gemini CLI and Devin |
+| [Kotlin-QuickStart](https://github.com/wiroai/Kotlin-QuickStart) | WiroKit, the Wiro AI SDK for Android |
+| [Dart-QuickStart](https://github.com/wiroai/Dart-QuickStart) | Wiro AI SDK for Dart and Flutter |
+| [ReactNative-QuickStart](https://github.com/wiroai/ReactNative-QuickStart) | WiroKit, the Wiro AI SDK for React Native |
+| [Swift-Realtime](https://github.com/wiroai/Swift-Realtime) | Realtime voice AI example for iOS |
+| [Kotlin-Realtime](https://github.com/wiroai/Kotlin-Realtime) | Realtime voice AI example for Android |
+| [Dart-Realtime](https://github.com/wiroai/Dart-Realtime) | Realtime voice AI example for Flutter |
+| [ReactNative-Realtime](https://github.com/wiroai/ReactNative-Realtime) | Realtime voice AI example for React Native |
+| [n8n-nodes-wiroai](https://github.com/wiroai/n8n-nodes-wiroai) | Wiro AI nodes for n8n |
+| [Wiro-Docs](https://github.com/wiroai/Wiro-Docs) | Source of the Wiro AI API docs |
+
+[Website](https://wiro.ai) · [Models](https://wiro.ai/models) · [Docs](https://wiro.ai/docs) · [X](https://x.com/wiroai)
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
----
+MIT. See [LICENSE](LICENSE).
 
 <div align="center">
 
-<img src="https://wiro.ai/images/koala/accent-heavy-koala.png" alt="Wiro" width="80" />
-
-**Built with 💚 by the Wiro team**
-
-[wiro.ai](https://wiro.ai) · [GitHub @wiroai](https://github.com/wiroai)
+<img src="https://wiro.ai/images/koala/accent-heavy-koala.png" alt="Wiro AI koala mascot" width="80">
 
 </div>
