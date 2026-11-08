@@ -304,6 +304,14 @@ open Example/WiroExample.xcodeproj
 Configure an API key or proxy URL in **Settings**, enter a prompt, and tap
 **Generate**. See [`Example/README.md`](Example/README.md).
 
+## Agent skill
+
+This repository includes an agent skill, `wiro-swift`, in [`skills/wiro-swift/SKILL.md`](./skills/wiro-swift/SKILL.md). It shows coding agents such as Claude Code, Codex and Cursor how to use WiroKit in iOS apps. Add it to your agent with:
+
+```bash
+npx skills add wiroai/Swift-QuickStart --skill wiro-swift
+```
+
 ## Documentation
 
 - Product docs: [https://wiro.ai/docs](https://wiro.ai/docs)
