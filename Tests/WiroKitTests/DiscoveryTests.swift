@@ -56,6 +56,36 @@ struct DiscoveryModelTests {
         #expect(model.raw["id"]?.stringValue == "42")
     }
 
+    @Test("keeps the dynamicprice JSON string from Tool/List")
+    func dynamicPriceString() {
+        let tiers = #"[{"inputs":{},"price":0.09,"priceMethod":"cpr"}]"#
+
+        let model = WiroModel.parse(["dynamicprice": .string(tiers)])
+
+        #expect(model.dynamicPrice == tiers)
+    }
+
+    @Test("encodes the dynamicprice array from Tool/Detail as JSON text")
+    func dynamicPriceArray() throws {
+        let json: WiroJSON = try decodeObject(
+            #"""
+            {
+              "dynamicprice": [
+                { "inputs": {}, "price": 0.039, "priceMethod": "cpo" }
+              ]
+            }
+            """#
+        )
+
+        let schema = WiroModelSchema.parse(json)
+        let text = try #require(schema.model.dynamicPrice)
+        let decoded = try JSONDecoder()
+            .decode(WiroJSONValue.self, from: Data(text.utf8))
+
+        #expect(text == #"[{"inputs":{},"price":0.039,"priceMethod":"cpo"}]"#)
+        #expect(decoded == json["dynamicprice"])
+    }
+
     @Test("sort and order api values match the wire protocol")
     func sortWireValues() {
         #expect(WiroModelSort.relevance.apiValue == "relevance")

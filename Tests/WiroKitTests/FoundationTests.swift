@@ -188,6 +188,20 @@ struct JSONReaderTests {
         #expect(JSONReader.string(nil) == nil)
     }
 
+    @Test("jsonText encodes collections and reads other values as strings")
+    func jsonTextReading() {
+        let object: WiroJSONValue = ["b": [1, true], "a": nil, "c": "x/y"]
+        let file = WiroJSONValue.fileInput(.data(Data([1]), fileName: "a.png"))
+
+        #expect(
+            JSONReader.jsonText(object) == #"{"a":null,"b":[1,true],"c":"x/y"}"#
+        )
+        #expect(JSONReader.jsonText(.string("tier-a")) == "tier-a")
+        #expect(JSONReader.jsonText(.number(2)) == "2")
+        #expect(JSONReader.jsonText(nil) == nil)
+        #expect(JSONReader.jsonText([file]) == nil)
+    }
+
     @Test("list and map extract collections")
     func collections() {
         let list: WiroJSONValue = [1, "a"]

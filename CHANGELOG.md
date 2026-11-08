@@ -5,6 +5,11 @@ All notable changes to WiroKit are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## Unreleased
+
+- `WiroModel.dynamicPrice` reads `dynamicprice` as JSON text from both
+  `Tool/List` and `Tool/Detail`.
+
 ## 0.1.0 - 2026-08-17
 
 Initial public Swift 6 SDK for iOS 17+.

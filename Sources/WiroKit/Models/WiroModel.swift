@@ -61,7 +61,11 @@ public struct WiroModel: Sendable, Equatable {
     public let computingTime: String?
     /// Approximate cost reported by Wiro.
     public let approximateCost: String?
-    /// Dynamic pricing descriptor.
+    /// JSON text of the model's pricing tiers, such as
+    /// `[{"inputs":{},"price":0.09,"priceMethod":"cpr"}]`.
+    ///
+    /// Read from the `dynamicprice` field of both `Tool/List` and
+    /// `Tool/Detail` responses.
     public let dynamicPrice: String?
     /// Cost-per-second descriptor.
     public let cps: String?
@@ -143,7 +147,7 @@ public struct WiroModel: Sendable, Equatable {
             samples: JSONReader.stringList(json, "samples"),
             computingTime: JSONReader.string(json, "computingtime"),
             approximateCost: JSONReader.string(json, "approximatelycost"),
-            dynamicPrice: JSONReader.string(json, "dynamicprice"),
+            dynamicPrice: JSONReader.jsonText(json, "dynamicprice"),
             cps: JSONReader.string(json, "cps"),
             taskStats: taskStatsJSON.map(WiroModelTaskStats.parse),
             raw: json

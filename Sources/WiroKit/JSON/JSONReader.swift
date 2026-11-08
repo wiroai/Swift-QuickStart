@@ -35,6 +35,29 @@ enum JSONReader {
         string(object[key])
     }
 
+    /// Extracts JSON text from `value`.
+    ///
+    /// - Encodes `.object` and `.array` as compact JSON text with sorted
+    ///   keys, so equal values produce equal text.
+    /// - Reads other values like ``string(_:)``.
+    static func jsonText(_ value: WiroJSONValue?) -> String? {
+        guard let value else { return nil }
+        switch value {
+        case .object, .array:
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+            guard let data = try? encoder.encode(value) else { return nil }
+            return String(decoding: data, as: UTF8.self)
+        case .string, .number, .bool, .null, .fileInput:
+            return string(value)
+        }
+    }
+
+    /// Extracts JSON text for `key` from `object`.
+    static func jsonText(_ object: WiroJSON, _ key: String) -> String? {
+        jsonText(object[key])
+    }
+
     /// Extracts an integer from `value`.
     ///
     /// Accepts numeric values and numeric strings such as `"42"`.
